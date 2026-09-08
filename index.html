@@ -349,9 +349,64 @@ function editDialog(title, fields, values){
       if (f.type === 'textarea') return `<div class="field"><label>${esc(f.label)}</label><textarea data-k="${f.key}">${esc(v)}</textarea></div>`;
       if (f.type === 'checkbox') return `<div class="field"><label><input type="checkbox" data-k="${f.key}" style="width:auto;margin-right:8px"${v ? ' checked':''}>${esc(f.label)}</label></div>`;
       if (f.type === 'select') return `<div class="field"><label>${esc(f.label)}</label><select data-k="${f.key}">${f.options.map(o=>`<option value="${esc(o)}"${String(v)===String(o)?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+      if (f.type === 'image') return `<div class="field">
+        <label>${esc(f.label)}</label>
+        <input data-k="${f.key}" type="text" value="${esc(v)}" placeholder="No image yet">
+        ${v ? `<img src="${esc(v)}" alt="" style="max-width:100%;max-height:180px;margin-top:8px;border:1px solid var(--n200)">` : ''}
+        <div class="row" style="margin-top:8px">
+          <input type="file" accept="image/jpeg,image/png,image/webp" data-file="${f.key}" style="flex:1;min-width:0">
+          <button class="btn ghost sm" type="button" data-upload="${f.key}">Upload</button>
+        </div>
+        <div class="muted" data-status="${f.key}" style="font-size:12px;margin-top:4px"></div>
+      </div>`;
+      if (f.type === 'video') return `<div class="field">
+        <label>${esc(f.label)}</label>
+        <input data-k="${f.key}" type="text" value="${esc(v)}" placeholder="No video yet">
+        ${v ? `<video src="${esc(v)}" controls preload="metadata" style="width:100%;margin-top:8px;background:#000;max-height:220px"></video>` : ''}
+        <div class="row" style="margin-top:8px">
+          <input type="file" accept="video/mp4,video/webm,video/quicktime" data-file="${f.key}" style="flex:1;min-width:0">
+          <button class="btn ghost sm" type="button" data-upload="${f.key}">Upload</button>
+        </div>
+        <div class="muted" data-status="${f.key}" style="font-size:12px;margin-top:4px"></div>
+      </div>`;
       return `<div class="field"><label>${esc(f.label)}</label><input data-k="${f.key}" type="${f.type||'text'}" value="${esc(v)}"${f.readonly?' readonly':''}></div>`;
     }).join('');
     const dlg = $('#dlg');
+
+    // Uploads go straight to Supabase Storage and the resulting public URL is written into the
+    // text box beside the picker, so the row saves the URL like any other field.
+    dlg.querySelectorAll('[data-upload]').forEach(btn => {
+      btn.onclick = async () => {
+        const key = btn.dataset.upload;
+        const picker = dlg.querySelector(`[data-file="${key}"]`);
+        const status = dlg.querySelector(`[data-status="${key}"]`);
+        const file = picker && picker.files && picker.files[0];
+        if (!file) { status.textContent = 'Choose a file first.'; return; }
+        // The bucket caps at 500 MB. Images are held to 10 MB so a phone photo straight off the
+        // camera does not become a slow download for every worker on a weak connection.
+        const isImage = file.type.startsWith('image/');
+        const cap = isImage ? 10 * 1024 * 1024 : 500 * 1024 * 1024;
+        if (file.size > cap) {
+          status.textContent = `That file is ${(file.size/1048576).toFixed(1)} MB, over the ${isImage ? '10 MB image' : '500 MB video'} limit.`;
+          return;
+        }
+        btn.disabled = true;
+        status.textContent = `Uploading ${(file.size/1048576).toFixed(1)} MB, please wait...`;
+        try {
+          const safe = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+          const path = `${key}/${Date.now()}_${safe}`;
+          const { error } = await sb.storage.from('thinksafety-media')
+            .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+          if (error) throw error;
+          const { data } = sb.storage.from('thinksafety-media').getPublicUrl(path);
+          dlg.querySelector(`[data-k="${key}"]`).value = data.publicUrl;
+          status.textContent = 'Uploaded. Now press Save to attach it.';
+        } catch (err) {
+          status.textContent = 'Upload failed: ' + (err.message || err);
+        } finally { btn.disabled = false; }
+      };
+    });
+
     const done = out => { dlg.close(); $('#dlgSave').onclick = null; $('#dlgCancel').onclick = null; resolve(out); };
     $('#dlgSave').onclick = () => {
       const out = {};
@@ -423,6 +478,9 @@ VIEWS.modules = async () => {
     { key:'tint', label:'Tint colour (hex)' },
     { key:'category_en', label:'Category (English)' }, { key:'category_sw', label:'Category (Swahili)' },
     { key:'title_en', label:'Title (English)' }, { key:'title_sw', label:'Title (Swahili)' },
+    { key:'image_url', label:'Course photo', type:'image' },
+    { key:'intro_video_url', label:'Intro video', type:'video' },
+    { key:'intro_video_poster_url', label:'Intro video thumbnail', type:'image' },
     { key:'published', label:'Published', type:'checkbox' },
   ];
   $('#t').innerHTML = table(['#','ID','Title (EN)','Title (SW)','Category','Live',''], rows, m => `<tr>
@@ -457,14 +515,19 @@ VIEWS.lessons = async () => {
     { key:'sort', label:'Order in module', type:'number' },
     { key:'title_en', label:'Title (English)' }, { key:'title_sw', label:'Title (Swahili)' },
     { key:'body_en', label:'Body (English)', type:'textarea' }, { key:'body_sw', label:'Body (Swahili)', type:'textarea' },
+    { key:'video_url', label:'Lesson video', type:'video' },
+    { key:'video_poster_url', label:'Lesson video thumbnail', type:'image' },
+    { key:'diagram_url', label:'Diagram', type:'image' },
+    { key:'photo_url', label:'Reference photo', type:'image' },
   ]);
   async function render(){
     const mid = $('#mod').value;
     const all = await fetchAll('thinksafety_lessons', { col:'sort' });
     const rows = all.filter(l => l.module_id === mid);
-    $('#t').innerHTML = table(['#','Title (EN)','Title (SW)','Body (EN)',''], rows, l => `<tr>
+    $('#t').innerHTML = table(['#','Title (EN)','Title (SW)','Video','Body (EN)',''], rows, l => `<tr>
       <td>${l.sort}</td><td>${esc(l.title_en)}</td><td>${esc(l.title_sw)}</td>
-      <td class="muted">${esc((l.body_en||'').slice(0,90))}${(l.body_en||'').length>90?'...':''}</td>
+      <td>${l.video_url ? '<span class="tag yes">Yes</span>' : '<span class="tag no">None</span>'}</td>
+      <td class="muted">${esc((l.body_en||'').slice(0,70))}${(l.body_en||'').length>70?'...':''}</td>
       <td class="actions"><button class="btn ghost sm" data-edit="${l.id}">Edit</button>
         <button class="btn danger sm" data-del="${l.id}">Delete</button></td></tr>`);
     $('#t').onclick = async e => {
@@ -547,14 +610,17 @@ VIEWS.products = async () => {
     { key:'name_en', label:'Name (English)' }, { key:'name_sw', label:'Name (Swahili)' },
     { key:'category', label:'Category', type:'select', options: cats.filter(c=>c.id!=='All').map(c=>c.id) },
     { key:'price', label:'Price', type:'number' },
+    { key:'image_url', label:'Product photo', type:'image' },
     { key:'sizes', label:'Sizes, one per line', type:'textarea' },
     { key:'in_stock', label:'In stock', type:'checkbox' },
     { key:'published', label:'Published', type:'checkbox' },
   ];
   const toLines = a => Array.isArray(a) ? a.join('\n') : '';
   const fromLines = s => String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
-  $('#t').innerHTML = table(['#','ID','Name (EN)','Category','Price','Sizes','Stock',''], rows, p => `<tr>
-    <td>${p.sort}</td><td><code>${esc(p.id)}</code></td><td>${esc(p.name_en)}</td><td>${esc(p.category)}</td>
+  $('#t').innerHTML = table(['#','Photo','ID','Name (EN)','Category','Price','Sizes','Stock',''], rows, p => `<tr>
+    <td>${p.sort}</td>
+    <td>${p.image_url ? `<img src="${esc(p.image_url)}" alt="" style="width:44px;height:44px;object-fit:cover">` : '<span class="tag no">None</span>'}</td>
+    <td><code>${esc(p.id)}</code></td><td>${esc(p.name_en)}</td><td>${esc(p.category)}</td>
     <td>${(p.price||0).toLocaleString()}</td><td class="muted">${esc((p.sizes||[]).join(', '))}</td>
     <td><span class="tag ${p.in_stock?'yes':'no'}">${p.in_stock?'Yes':'No'}</span></td>
     <td class="actions"><button class="btn ghost sm" data-edit="${esc(p.id)}">Edit</button>
@@ -602,11 +668,16 @@ VIEWS.stories = async () => {
     {key:'role_en',label:'Role (English)'},{key:'role_sw',label:'Role (Swahili)'},
     {key:'title_en',label:'Headline (English)'},{key:'title_sw',label:'Headline (Swahili)'},
     {key:'quote_en',label:'Quote (English)',type:'textarea'},{key:'quote_sw',label:'Quote (Swahili)',type:'textarea'},
+    {key:'image_url',label:'Portrait photo',type:'image'},
+    {key:'video_url',label:'Story video',type:'video'},
+    {key:'video_poster_url',label:'Video still (thumbnail)',type:'image'},
     {key:'length_label',label:'Video length label'},{key:'tint',label:'Tint'},{key:'published',label:'Published',type:'checkbox'},
   ];
-  $('#t').innerHTML = table(['#','Person','Headline (EN)','Length','Live',''], rows, s => `<tr>
+  $('#t').innerHTML = table(['#','Person','Headline (EN)','Media','Length','Live',''], rows, s => `<tr>
     <td>${s.sort}</td><td>${esc(s.person_name)}<br><span class="muted">${esc(s.role_en)}</span></td>
-    <td>${esc(s.title_en)}</td><td>${esc(s.length_label)}</td>
+    <td>${esc(s.title_en)}</td>
+    <td>${s.video_url ? '<span class="tag yes">Video</span> ' : ''}${s.image_url ? '<span class="tag yes">Photo</span>' : ''}${!s.video_url && !s.image_url ? '<span class="tag no">None</span>' : ''}</td>
+    <td>${esc(s.length_label)}</td>
     <td><span class="tag ${s.published?'yes':'no'}">${s.published?'Live':'Hidden'}</span></td>
     <td class="actions"><button class="btn ghost sm" data-edit="${esc(s.id)}">Edit</button>
       <button class="btn danger sm" data-del="${esc(s.id)}">Delete</button></td></tr>`);
@@ -796,6 +867,8 @@ VIEWS.settings = async () => {
     lipa_namba: 'The M-Pesa Lipa Namba shown on the payment screen.',
     account_name: 'Account name shown under the Lipa Namba.',
     currency_prefix: 'Prefix before every price, including the trailing space.',
+    worker_photo_url: 'The worker photo on the opening screen. Upload a picture here.',
+    home_photo_url: 'The photo in the home screen header. Upload a picture here.',
     pass_mark_pct: 'Percentage needed to pass a module quiz.',
     xp_per_lesson: 'XP awarded the first time a lesson is completed.',
   };
@@ -805,7 +878,11 @@ VIEWS.settings = async () => {
     <td class="actions"><button class="btn ghost sm" data-edit="${esc(s.key)}">Edit</button></td></tr>`);
   $('#t').onclick = async e => {
     const key = e.target.dataset.edit; if (!key) return;
-    const v = await editDialog(`Edit "${key}"`, [{ key:'key', label:'Key', readonly:true }, { key:'value', label:'Value' }], rows.find(r=>r.key===key));
+    const isMedia = key.endsWith('_url');
+    const v = await editDialog(`Edit "${key}"`, [
+      { key:'key', label:'Key', readonly:true },
+      { key:'value', label:isMedia ? 'Image' : 'Value', type: isMedia ? 'image' : 'text' },
+    ], rows.find(r=>r.key===key));
     if (v) try { await saveRow('thinksafety_settings', { key, value: v.value }); VIEWS.settings(); } catch(err){ fail(err); }
   };
 };
