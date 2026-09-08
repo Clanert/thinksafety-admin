@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ThinkSafety Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#243d91; --accent-100:#edf0f9; --accent-200:#d9dff1; --accent-600:#2f4aa0;
+  --accent-700:#243d91; --accent-800:#1b2d6c; --accent-900:#131e47;
+  --lime:#8cc641; --lime-100:#f2f8e8; --lime-200:#e2f0cc; --lime-700:#5e872a;
+  --n100:#f8f4f4; --n200:#eae7e7; --n300:#d7d3d3; --n500:#9b9797; --n600:#7d7979; --n800:#444141;
+  --bg:#fff; --surface:#f2f4fb; --text:#1d2333; --divider:rgba(29,35,51,.25);
+  --danger:#b3261e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--surface);color:var(--text);font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+/* Square corners everywhere: the ThinkSafety system sets every radius token to 0. */
+button,input,select,textarea,.card,.chip{border-radius:0}
+a{color:var(--accent-700)}
+
+/* ---------- login ---------- */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#login .box{background:#fff;padding:32px;width:100%;max-width:380px;border:1px solid var(--divider)}
+#login h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+#login p.sub{color:var(--n600);margin:6px 0 22px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--n800)}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--n300);background:#fff}
+.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-2px;border-color:var(--accent)}
+.btn{padding:10px 16px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--accent-800)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--accent-700);border:1px solid var(--n300)}
+.btn.ghost:hover{background:var(--accent-100)}
+.btn.lime{background:var(--lime);color:#173000}
+.btn.lime:hover{background:var(--lime-700);color:#fff}
+.btn.danger{background:#fff;color:var(--danger);border:1px solid var(--n300)}
+.btn.danger:hover{background:#fdecea}
+.btn.sm{padding:6px 10px;font-size:12px}
+.err{background:#fdecea;color:var(--danger);padding:10px 12px;margin-bottom:12px;font-size:13px}
+.ok{background:var(--lime-100);color:var(--lime-700);padding:10px 12px;margin-bottom:12px;font-size:13px}
+
+/* ---------- shell ---------- */
+#app{display:none;min-height:100vh;grid-template-columns:216px 1fr}
+#app.on{display:grid}
+aside{background:var(--accent-900);color:#fff;padding:20px 0;position:sticky;top:0;height:100vh;overflow:auto}
+aside .brand{padding:0 20px 18px;font-weight:800;font-size:17px;letter-spacing:-.3px}
+aside .brand span{color:var(--lime)}
+aside nav a{display:block;padding:9px 20px;color:#c9d0e8;text-decoration:none;font-size:13px;cursor:pointer;border-left:3px solid transparent}
+aside nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+aside nav a.active{background:rgba(255,255,255,.10);color:#fff;border-left-color:var(--lime);font-weight:600}
+aside .group{padding:16px 20px 6px;font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:#7f8dc9;font-weight:700}
+aside .foot{padding:16px 20px;border-top:1px solid rgba(255,255,255,.12);margin-top:12px;font-size:12px;color:#9fb0d8}
+main{padding:26px 30px 60px;overflow:auto}
+h2.page{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px}
+p.page-sub{color:var(--n600);margin-bottom:20px}
+
+/* ---------- cards, tables ---------- */
+.card{background:#fff;border:1px solid var(--divider);padding:18px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#fff;border:1px solid var(--divider);padding:16px}
+.stat .n{font-size:26px;font-weight:800;letter-spacing:-.6px}
+.stat .l{font-size:12px;color:var(--n600);margin-top:2px}
+.stat.alert .n{color:var(--danger)}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--n200);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--n600);background:var(--accent-100)}
+td.actions{white-space:nowrap;text-align:right}
+tr:hover td{background:#fbfcfe}
+.muted{color:var(--n600)}
+.tag{display:inline-block;padding:2px 8px;font-size:11px;font-weight:600}
+.tag.pending{background:#fff4e5;color:#8a5300}
+.tag.approved{background:var(--lime-100);color:var(--lime-700)}
+.tag.rejected{background:#fdecea;color:var(--danger)}
+.tag.yes{background:var(--lime-100);color:var(--lime-700)}
+.tag.no{background:var(--n100);color:var(--n600)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.end{justify-content:flex-end}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spacer{flex:1}
+textarea{min-height:88px;resize:vertical}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.toolbar input[type=search]{padding:9px 12px;border:1px solid var(--n300);min-width:220px}
+dialog{border:none;padding:0;max-width:720px;width:94vw;background:#fff;box-shadow:0 12px 32px rgba(45,43,43,.22)}
+dialog::backdrop{background:rgba(19,30,71,.45)}
+dialog .dlg-head{padding:16px 20px;border-bottom:1px solid var(--n200);font-weight:700}
+dialog .dlg-body{padding:20px;max-height:66vh;overflow:auto}
+dialog .dlg-foot{padding:14px 20px;border-top:1px solid var(--n200);display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--accent-900);color:#fff;padding:11px 18px;font-size:13px;display:none;z-index:99}
+.empty{padding:34px;text-align:center;color:var(--n600);background:#fff;border:1px dashed var(--n300)}
+@media(max-width:820px){#app.on{grid-template-columns:1fr}aside{position:static;height:auto}main{padding:18px}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="box">
+    <h1>Think<span style="color:var(--lime)">Safety</span> Admin</h1>
+    <p class="sub">Staff access only.</p>
+    <div id="loginErr" class="err" style="display:none"></div>
+    <form id="loginForm">
+      <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required></div>
+      <button class="btn" style="width:100%" id="loginBtn" type="submit">Log in</button>
+    </form>
+    <p class="muted" style="margin-top:16px;font-size:12px;line-height:1.5">
+      Accounts are created in Supabase and added to the admins table. Signing in here with an
+      account that is not an admin gives no access to anything: the database enforces it, not this page.
+    </p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside>
+    <div class="brand">Think<span>Safety</span></div>
+    <div class="group">Overview</div>
+    <nav>
+      <a data-view="dashboard" class="active">Dashboard</a>
+    </nav>
+    <div class="group">Training</div>
+    <nav>
+      <a data-view="modules">Modules</a>
+      <a data-view="lessons">Lessons</a>
+      <a data-view="quiz">Quiz questions</a>
+      <a data-view="stories">Stories</a>
+      <a data-view="rewards">Rewards</a>
+    </nav>
+    <div class="group">Shop</div>
+    <nav>
+      <a data-view="products">Products</a>
+      <a data-view="categories">Categories</a>
+      <a data-view="orders">Orders</a>
+      <a data-view="payments">Payments</a>
+    </nav>
+    <div class="group">People &amp; platform</div>
+    <nav>
+      <a data-view="users">Users</a>
+      <a data-view="comments">Comments</a>
+      <a data-view="texts">App text</a>
+      <a data-view="settings">Settings</a>
+    </nav>
+    <div class="foot">
+      <div id="whoami" style="margin-bottom:8px;word-break:break-all"></div>
+      <button class="btn ghost sm" id="logoutBtn">Log out</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-head" id="dlgTitle">Edit</div>
+  <div class="dlg-body" id="dlgBody"></div>
+  <div class="dlg-foot">
+    <button class="btn ghost" id="dlgCancel">Cancel</button>
+    <button class="btn" id="dlgSave">Save</button>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// The publishable key is meant to be public. It grants nothing on its own: every table has Row
+// Level Security, and writes require a row in thinksafety_admins. Never put a service_role key
+// in this file; it would hand the whole database to anyone who views source.
+const SUPABASE_URL = 'https://jiswpvhvxtngcwfzccwp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_yXy-mVbmsBH6f7C-TT4Ajw_C8J8li-i';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DEFAULT_TEXTS = {"accountType": {"en": "Account type","sw": "Aina ya akaunti"},"addedToast": {"en": "Added to cart","sw": "Imewekwa kikapuni"},"auth.badge": {"en": "Join your site team","sw": "Jiunge na timu yako"},"auth.head1": {"en": "Train your crew.","sw": "Funza timu yako."},"auth.head2": {"en": "Stay compliant.","sw": "Fuata sheria."},"auth.social": {"en": "2,400+ workers already trained","sw": "Wafanyakazi 2,400+ wamefunzwa"},"auth.sub": {"en": "Free safety training, English or Swahili.","sw": "Mafunzo bure, Kiswahili au Kiingereza."},"business": {"en": "Business","sw": "Biashara"},"cart.browse": {"en": "Browse PPE","sw": "Vinjari Vifaa"},"cart.checkout": {"en": "Checkout","sw": "Malipo"},"cart.empty": {"en": "Your cart is empty","sw": "Kikapu chako hakina kitu"},"cart.emptySub": {"en": "Browse the shop to add helmets, gloves and more.","sw": "Vinjari duka ili kuongeza kofia, glavu na zaidi."},"cart.subtotal": {"en": "Subtotal","sw": "Jumla ndogo"},"cart.title": {"en": "Your cart","sw": "Kikapu chako"},"cart.total": {"en": "Total","sw": "Jumla"},"comment1": {"en": "Clear and useful, thanks for this!","sw": "Wazi na muhimu, asante kwa hii!"},"comment2": {"en": "Very helpful for our site team.","sw": "Imekuwa msaada mkubwa kwa timu yetu."},"commenter1": {"en": "Amina","sw": "Amina"},"commenter2": {"en": "Peter","sw": "Peter"},"continue": {"en": "Continue","sw": "Endelea"},"fullName": {"en": "Full name","sw": "Jina kamili"},"getStarted": {"en": "Get started","sw": "Anza"},"haveAccount": {"en": "Already exploring? Log in or register.","sw": "Unavinjari tayari? Ingia au ujisajili."},"home.allFree": {"en": "All training is free","sw": "Mafunzo yote ni bure"},"home.bannerLine1": {"en": "Learn Anytime,","sw": "Jifunze Wakati Wowote,"},"home.bannerLine2": {"en": "Anywhere!","sw": "Mahali Popote!"},"home.categoriesTitle": {"en": "Training modules","sw": "Moduli za mafunzo"},"home.chipA": {"en": "Environment","sw": "Mazingira"},"home.chipB": {"en": "Workplace","sw": "Eneo la kazi"},"home.continueTraining": {"en": "Continue training","sw": "Endelea na mafunzo"},"home.free": {"en": "FREE","sw": "BURE"},"home.headline1": {"en": "Work safer,","sw": "Fanya kazi salama,"},"home.headline2": {"en": "learn something","sw": "jifunze kitu"},"home.headline3": {"en": "today.","sw": "leo."},"home.resume": {"en": "Resume module","sw": "Endelea na moduli"},"home.shopCta": {"en": "Shop PPE","sw": "Nunua Vifaa vya Kujikinga"},"home.sub": {"en": "Keep your site safe and your team certified.","sw": "Weka eneo lako la kazi salama na timu yako ikiwa na vyeti."},"home.tipTitle": {"en": "Safety tip of the day","sw": "Ushauri wa usalama wa siku"},"home.viewAll": {"en": "View all","sw": "Ona zote"},"home.weekTitle": {"en": "Module of the week","sw": "Moduli ya wiki"},"individual": {"en": "Individual","sw": "Mtu binafsi"},"learn.backToCourses": {"en": "Browse courses","sw": "Angalia kozi"},"learn.clear": {"en": "Clear search","sw": "Safisha utafutaji"},"learn.continueRow": {"en": "Continue where you left off","sw": "Endelea ulipoishia"},"learn.noResults": {"en": "No courses match that search.","sw": "Hakuna kozi inayolingana na utafutaji."},"learn.offline": {"en": "Offline","sw": "Nje ya mtandao"},"learn.pickTopic": {"en": "What do you want to learn?","sw": "Unataka kujifunza nini?"},"learn.popular": {"en": "Popular right now","sw": "Maarufu sasa"},"learn.search": {"en": "Search training modules","sw": "Tafuta moduli za mafunzo"},"learn.showMore": {"en": "Show all","sw": "Ona zote"},"learn.storiesTitle": {"en": "Voices from the site","sw": "Sauti kutoka eneo la kazi"},"learn.title": {"en": "Courses","sw": "Kozi"},"learn.watch": {"en": "Watch","sw": "Tazama"},"lessonOf": {"en": "Lesson {n} of {m}","sw": "Somo la {n} kati ya {m}"},"loginTab": {"en": "Log in","sw": "Ingia"},"module.addComment": {"en": "Add a comment...","sw": "Ongeza maoni..."},"module.comments": {"en": "Comments","sw": "Maoni"},"module.diagramLabel": {"en": "DIAGRAM","sw": "MCHORO"},"module.freeLabel": {"en": "Cost","sw": "Gharama"},"module.introVideo": {"en": "Intro video","sw": "Video ya utangulizi"},"module.lessons": {"en": "lessons","sw": "masomo"},"module.photoLabel": {"en": "REFERENCE PHOTO","sw": "PICHA YA MAREJEO"},"module.progress": {"en": "Progress","sw": "Maendeleo"},"module.resume": {"en": "Resume module","sw": "Endelea na moduli"},"module.review": {"en": "Review module","sw": "Kagua moduli"},"module.selfPaced": {"en": "Free · self-paced","sw": "Bure · kwa muda wako"},"module.start": {"en": "Start module","sw": "Anza moduli"},"navHome": {"en": "Home","sw": "Nyumbani"},"navLearn": {"en": "Courses","sw": "Kozi"},"navProfile": {"en": "Profile","sw": "Wasifu"},"navShop": {"en": "Shop","sw": "Duka"},"order.backHome": {"en": "Back to home","sw": "Rudi nyumbani"},"order.continueShopping": {"en": "Continue shopping","sw": "Endelea kununua"},"order.pendingTag": {"en": "Pending admin approval","sw": "Yanasubiri idhini ya msimamizi"},"order.sub": {"en": "Your admin will review and approve your Lipa Namba payment. Your PPE order will be delivered once it is approved.","sw": "Msimamizi wako atakagua na kuidhinisha malipo yako ya Lipa Namba. Oda yako ya PPE itawasilishwa baada ya kuidhinishwa."},"order.title": {"en": "Payment submitted","sw": "Malipo yamewasilishwa"},"password": {"en": "Password","sw": "Nenosiri"},"payment.accountName": {"en": "Account name","sw": "Jina la akaunti"},"payment.amountDue": {"en": "Amount due","sw": "Kiasi cha kulipa"},"payment.confirm": {"en": "Confirm payment","sw": "Thibitisha malipo"},"payment.instructions": {"en": "Go to M-Pesa > Lipa Namba on your phone, enter the number above and the amount due, then confirm below with the phone number you paid from.","sw": "Fungua M-Pesa > Lipa Namba kwenye simu yako, weka namba iliyo hapo juu na kiasi cha kulipa, kisha thibitisha hapa chini na namba uliyolipia."},"payment.lipaNamba": {"en": "Lipa Namba","sw": "Lipa Namba"},"payment.phone": {"en": "Phone number used to pay","sw": "Namba ya simu uliyolipia"},"payment.title": {"en": "Pay with Lipa Namba","sw": "Lipa na Lipa Namba"},"phone": {"en": "Phone number","sw": "Namba ya simu"},"product.addToCart": {"en": "Add to cart","sw": "Weka kikapuni"},"product.selectSize": {"en": "Select size","sw": "Chagua ukubwa"},"profile.certificates": {"en": "Certificates","sw": "Vyeti"},"profile.language": {"en": "Language","sw": "Lugha"},"profile.logout": {"en": "Log out","sw": "Toka"},"profile.myTraining": {"en": "My training","sw": "Mafunzo yangu"},"profile.notifications": {"en": "Notifications","sw": "Arifa"},"profile.settings": {"en": "Settings","sw": "Mipangilio"},"quiz.finish": {"en": "Finish quiz","sw": "Kamilisha jaribio"},"quiz.next": {"en": "Next question","sw": "Swali linalofuata"},"quiz.submit": {"en": "Submit answer","sw": "Wasilisha jibu"},"quiz.title": {"en": "Quiz","sw": "Jaribio"},"result.backHome": {"en": "Back to home","sw": "Rudi nyumbani"},"result.certificate": {"en": "Certificate of completion","sw": "Cheti cha Kukamilisha"},"result.failSub": {"en": "You scored {s} out of {t}. Review the module and try again.","sw": "Umepata alama {s} kati ya {t}. Kagua moduli tena kisha ujaribu."},"result.failTitle": {"en": "Almost there","sw": "Karibu kufika"},"result.issuedTo": {"en": "Issued to","sw": "Kimetolewa kwa"},"result.passSub": {"en": "You scored {s} out of {t} and completed this module.","sw": "Umepata alama {s} kati ya {t} na umekamilisha moduli hii."},"result.passTitle": {"en": "Nice work!","sw": "Kazi nzuri!"},"result.retake": {"en": "Retake quiz","sw": "Fanya jaribio tena"},"reward.unlocked": {"en": "Reward unlocked","sw": "Umefungua zawadi"},"reward.useInShop": {"en": "Use it in the shop","sw": "Itumie dukani"},"reward.yourRewards": {"en": "Your rewards","sw": "Zawadi zako"},"shop.inStock": {"en": "In stock","sw": "Vipo dukani"},"shop.search": {"en": "Search PPE","sw": "Tafuta vifaa vya kujikinga"},"signupTab": {"en": "Sign up","sw": "Jisajili"},"splashHead1": {"en": "Let's begin","sw": "Tuanze"},"splashHead2": {"en": "working","sw": "kufanya kazi"},"splashHead3": {"en": "safer together.","sw": "kwa usalama."},"splashSub": {"en": "Train. Protect. Stay compliant.","sw": "Jifunze. Jikinge. Fuata sheria."},"splashTitle": {"en": "Welcome to a new","sw": "Karibu kwenye njia mpya"},"splashTitle2": {"en": "way to work safely","sw": "ya kufanya kazi salama"},"tagline": {"en": "Health & safety training and PPE, in one app.","sw": "Mafunzo ya afya na usalama pamoja na vifaa vya kujikinga, katika programu moja."},"welcomeTo": {"en": "Welcome to","sw": "Karibu kwenye"}};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let toastTimer;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.style.display='none',2400); }
+function fail(e){ console.error(e); toast('Error: ' + (e?.message || e)); }
+
+/* ================= auth ================= */
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Checking...';
+  $('#loginErr').style.display = 'none';
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#pw').value });
+    if (error) throw error;
+    await afterLogin();
+  } catch (err) {
+    $('#loginErr').textContent = err.message || 'Sign in failed.';
+    $('#loginErr').style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = 'Log in'; }
+});
+
+$('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+async function afterLogin(){
+  const { data:{ user } } = await sb.auth.getUser();
+  if (!user) return;
+  // Being signed in is not the same as being an admin. Check membership before showing anything,
+  // and sign straight back out if not, so a non-admin never sees an empty shell and wonders.
+  const { data: admin, error } = await sb.from('thinksafety_admins').select('user_id').eq('user_id', user.id).maybeSingle();
+  if (error || !admin) {
+    await sb.auth.signOut();
+    $('#loginErr').textContent = 'That account is not an administrator.';
+    $('#loginErr').style.display = 'block';
+    return;
+  }
+  $('#login').style.display = 'none';
+  $('#app').classList.add('on');
+  $('#whoami').textContent = user.email;
+  route('dashboard');
+}
+
+sb.auth.getSession().then(({ data }) => { if (data.session) afterLogin(); });
+
+/* ================= routing ================= */
+document.querySelectorAll('aside nav a').forEach(a => a.addEventListener('click', () => route(a.dataset.view)));
+function route(view){
+  document.querySelectorAll('aside nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
+  (VIEWS[view] || VIEWS.dashboard)();
+}
+
+/* ================= generic helpers ================= */
+async function fetchAll(table, order){
+  let q = sb.from(table).select('*');
+  if (order) q = q.order(order.col, { ascending: order.asc !== false });
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
+
+function page(title, sub, bodyHtml){
+  $('#main').innerHTML = `<h2 class="page">${esc(title)}</h2><p class="page-sub">${esc(sub)}</p>${bodyHtml}`;
+}
+
+function table(cols, rows, rowHtml){
+  if (!rows.length) return `<div class="empty">Nothing here yet.</div>`;
+  return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(rowHtml).join('')}</tbody></table>`;
+}
+
+/** Opens the modal with a set of fields and resolves with the edited values, or null if cancelled. */
+function editDialog(title, fields, values){
+  return new Promise(resolve => {
+    $('#dlgTitle').textContent = title;
+    $('#dlgBody').innerHTML = fields.map(f => {
+      const v = values?.[f.key] ?? f.default ?? '';
+      if (f.type === 'textarea') return `<div class="field"><label>${esc(f.label)}</label><textarea data-k="${f.key}">${esc(v)}</textarea></div>`;
+      if (f.type === 'checkbox') return `<div class="field"><label><input type="checkbox" data-k="${f.key}" style="width:auto;margin-right:8px"${v ? ' checked':''}>${esc(f.label)}</label></div>`;
+      if (f.type === 'select') return `<div class="field"><label>${esc(f.label)}</label><select data-k="${f.key}">${f.options.map(o=>`<option value="${esc(o)}"${String(v)===String(o)?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+      return `<div class="field"><label>${esc(f.label)}</label><input data-k="${f.key}" type="${f.type||'text'}" value="${esc(v)}"${f.readonly?' readonly':''}></div>`;
+    }).join('');
+    const dlg = $('#dlg');
+    const done = out => { dlg.close(); $('#dlgSave').onclick = null; $('#dlgCancel').onclick = null; resolve(out); };
+    $('#dlgSave').onclick = () => {
+      const out = {};
+      dlg.querySelectorAll('[data-k]').forEach(el => {
+        out[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      done(out);
+    };
+    $('#dlgCancel').onclick = () => done(null);
+    dlg.showModal();
+  });
+}
+
+async function saveRow(tableName, row, conflictKey){
+  const { error } = await sb.from(tableName).upsert(row, conflictKey ? { onConflict: conflictKey } : undefined);
+  if (error) throw error;
+  toast('Saved');
+}
+
+async function deleteRow(tableName, match, label){
+  if (!confirm(`Delete ${label}? This cannot be undone.`)) return false;
+  const { error } = await sb.from(tableName).delete().match(match);
+  if (error) { fail(error); return false; }
+  toast('Deleted');
+  return true;
+}
+
+const num = v => (v === '' || v === null || v === undefined) ? null : Number(v);
+
+/* ================= views ================= */
+const VIEWS = {};
+
+VIEWS.dashboard = async () => {
+  page('Dashboard', 'Everything at a glance.', '<div class="stats" id="st"></div><div id="recent"></div>');
+  try {
+    const [users, orders, payments, modules, products, comments] = await Promise.all([
+      fetchAll('thinksafety_users'), fetchAll('thinksafety_orders'), fetchAll('thinksafety_payments'),
+      fetchAll('thinksafety_modules'), fetchAll('thinksafety_products'), fetchAll('thinksafety_comments'),
+    ]);
+    const pendingUsers = users.filter(u => !u.approved).length;
+    const pendingPay = payments.filter(p => p.status === 'pending').length;
+    const revenue = payments.filter(p => p.status === 'approved').reduce((s,p) => s + (p.amount||0), 0);
+    $('#st').innerHTML = `
+      <div class="stat"><div class="n">${users.length}</div><div class="l">Registered workers</div></div>
+      <div class="stat ${pendingUsers?'alert':''}"><div class="n">${pendingUsers}</div><div class="l">Waiting for approval</div></div>
+      <div class="stat ${pendingPay?'alert':''}"><div class="n">${pendingPay}</div><div class="l">Payments to review</div></div>
+      <div class="stat"><div class="n">${orders.length}</div><div class="l">Orders</div></div>
+      <div class="stat"><div class="n">${revenue.toLocaleString()}</div><div class="l">Approved payment value</div></div>
+      <div class="stat"><div class="n">${modules.length}</div><div class="l">Training modules</div></div>
+      <div class="stat"><div class="n">${products.length}</div><div class="l">PPE products</div></div>
+      <div class="stat"><div class="n">${comments.length}</div><div class="l">Comments</div></div>`;
+    const recent = [...payments].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,8);
+    $('#recent').innerHTML = `<div class="card"><h3 style="margin-bottom:12px;font-size:15px">Latest payments</h3>` +
+      table(['When','Phone','Amount','Status'], recent, p => `<tr>
+        <td>${esc((p.created_at||'').slice(0,16).replace('T',' '))}</td>
+        <td>${esc(p.phone)}</td><td>${(p.amount||0).toLocaleString()}</td>
+        <td><span class="tag ${esc(p.status)}">${esc(p.status)}</span></td></tr>`) + `</div>`;
+  } catch (e) { fail(e); }
+};
+
+VIEWS.modules = async () => {
+  page('Modules', 'Training modules shown on the home and courses screens.',
+    `<div class="toolbar"><button class="btn" id="add">Add module</button><div class="spacer"></div></div><div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_modules', { col:'sort' });
+  const fields = [
+    { key:'id', label:'ID (used by the app, do not change once live)' },
+    { key:'sort', label:'Sort order', type:'number' },
+    { key:'icon', label:'Icon name' },
+    { key:'tint', label:'Tint colour (hex)' },
+    { key:'category_en', label:'Category (English)' }, { key:'category_sw', label:'Category (Swahili)' },
+    { key:'title_en', label:'Title (English)' }, { key:'title_sw', label:'Title (Swahili)' },
+    { key:'published', label:'Published', type:'checkbox' },
+  ];
+  $('#t').innerHTML = table(['#','ID','Title (EN)','Title (SW)','Category','Live',''], rows, m => `<tr>
+    <td>${m.sort}</td><td><code>${esc(m.id)}</code></td><td>${esc(m.title_en)}</td><td>${esc(m.title_sw)}</td>
+    <td>${esc(m.category_en)}</td>
+    <td><span class="tag ${m.published?'yes':'no'}">${m.published?'Live':'Hidden'}</span></td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(m.id)}">Edit</button>
+      <button class="btn danger sm" data-del="${esc(m.id)}">Delete</button></td></tr>`);
+  $('#add').onclick = async () => {
+    const v = await editDialog('New module', fields, { sort: rows.length, published: true, icon:'shield-check', tint:'#243d91' });
+    if (!v) return;
+    try { await saveRow('thinksafety_modules', { ...v, sort:num(v.sort) }); VIEWS.modules(); } catch(e){ fail(e); }
+  };
+  $('#t').onclick = async e => {
+    const id = e.target.dataset.edit || e.target.dataset.del;
+    if (!id) return;
+    if (e.target.dataset.del) { if (await deleteRow('thinksafety_modules', { id }, `module "${id}" and all its lessons and questions`)) VIEWS.modules(); return; }
+    const v = await editDialog('Edit module', fields, rows.find(r => r.id === id));
+    if (!v) return;
+    try { await saveRow('thinksafety_modules', { ...v, sort:num(v.sort) }); VIEWS.modules(); } catch(e){ fail(e); }
+  };
+};
+
+VIEWS.lessons = async () => {
+  const mods = await fetchAll('thinksafety_modules', { col:'sort' });
+  page('Lessons', 'The reading material inside each module.',
+    `<div class="toolbar">
+       <select id="mod">${mods.map(m=>`<option value="${esc(m.id)}">${esc(m.title_en)}</option>`).join('')}</select>
+       <button class="btn" id="add">Add lesson</button></div><div id="t"></div>`);
+  const fields = mid => ([
+    { key:'module_id', label:'Module', type:'select', options: mods.map(m=>m.id), default: mid },
+    { key:'sort', label:'Order in module', type:'number' },
+    { key:'title_en', label:'Title (English)' }, { key:'title_sw', label:'Title (Swahili)' },
+    { key:'body_en', label:'Body (English)', type:'textarea' }, { key:'body_sw', label:'Body (Swahili)', type:'textarea' },
+  ]);
+  async function render(){
+    const mid = $('#mod').value;
+    const all = await fetchAll('thinksafety_lessons', { col:'sort' });
+    const rows = all.filter(l => l.module_id === mid);
+    $('#t').innerHTML = table(['#','Title (EN)','Title (SW)','Body (EN)',''], rows, l => `<tr>
+      <td>${l.sort}</td><td>${esc(l.title_en)}</td><td>${esc(l.title_sw)}</td>
+      <td class="muted">${esc((l.body_en||'').slice(0,90))}${(l.body_en||'').length>90?'...':''}</td>
+      <td class="actions"><button class="btn ghost sm" data-edit="${l.id}">Edit</button>
+        <button class="btn danger sm" data-del="${l.id}">Delete</button></td></tr>`);
+    $('#t').onclick = async e => {
+      const id = e.target.dataset.edit || e.target.dataset.del;
+      if (!id) return;
+      if (e.target.dataset.del) { if (await deleteRow('thinksafety_lessons', { id }, 'this lesson')) render(); return; }
+      const v = await editDialog('Edit lesson', fields(mid), rows.find(r => r.id === id));
+      if (!v) return;
+      try { await saveRow('thinksafety_lessons', { id, ...v, sort:num(v.sort) }); render(); } catch(err){ fail(err); }
+    };
+    $('#add').onclick = async () => {
+      const v = await editDialog('New lesson', fields(mid), { sort: rows.length });
+      if (!v) return;
+      try { await saveRow('thinksafety_lessons', { ...v, sort:num(v.sort) }); render(); } catch(err){ fail(err); }
+    };
+  }
+  $('#mod').onchange = render;
+  render();
+};
+
+VIEWS.quiz = async () => {
+  const mods = await fetchAll('thinksafety_modules', { col:'sort' });
+  page('Quiz questions', 'Four options each. "Correct" is the zero-based index of the right answer.',
+    `<div class="toolbar">
+       <select id="mod">${mods.map(m=>`<option value="${esc(m.id)}">${esc(m.title_en)}</option>`).join('')}</select>
+       <button class="btn" id="add">Add question</button></div><div id="t"></div>`);
+  const fields = mid => ([
+    { key:'module_id', label:'Module', type:'select', options: mods.map(m=>m.id), default: mid },
+    { key:'sort', label:'Order', type:'number' },
+    { key:'q_en', label:'Question (English)', type:'textarea' }, { key:'q_sw', label:'Question (Swahili)', type:'textarea' },
+    { key:'options_en', label:'Options English, one per line', type:'textarea' },
+    { key:'options_sw', label:'Options Swahili, one per line', type:'textarea' },
+    { key:'correct', label:'Correct option (0 = first)', type:'number' },
+  ]);
+  const toLines = a => Array.isArray(a) ? a.join('\n') : '';
+  const fromLines = s => String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  async function render(){
+    const mid = $('#mod').value;
+    const rows = (await fetchAll('thinksafety_quiz_questions', { col:'sort' })).filter(q => q.module_id === mid);
+    $('#t').innerHTML = table(['#','Question (EN)','Options','Correct',''], rows, q => `<tr>
+      <td>${q.sort}</td><td>${esc(q.q_en)}</td>
+      <td class="muted">${(q.options_en||[]).map((o,i)=>`${i===q.correct?'<b>':''}${esc(o)}${i===q.correct?'</b>':''}`).join('<br>')}</td>
+      <td>${q.correct}</td>
+      <td class="actions"><button class="btn ghost sm" data-edit="${q.id}">Edit</button>
+        <button class="btn danger sm" data-del="${q.id}">Delete</button></td></tr>`);
+    $('#t').onclick = async e => {
+      const id = e.target.dataset.edit || e.target.dataset.del;
+      if (!id) return;
+      if (e.target.dataset.del) { if (await deleteRow('thinksafety_quiz_questions', { id }, 'this question')) render(); return; }
+      const r = rows.find(x => x.id === id);
+      const v = await editDialog('Edit question', fields(mid), { ...r, options_en: toLines(r.options_en), options_sw: toLines(r.options_sw) });
+      if (!v) return;
+      try {
+        await saveRow('thinksafety_quiz_questions', { id, ...v, sort:num(v.sort), correct:num(v.correct),
+          options_en: fromLines(v.options_en), options_sw: fromLines(v.options_sw) });
+        render();
+      } catch(err){ fail(err); }
+    };
+    $('#add').onclick = async () => {
+      const v = await editDialog('New question', fields(mid), { sort: rows.length, correct: 0 });
+      if (!v) return;
+      try {
+        await saveRow('thinksafety_quiz_questions', { ...v, sort:num(v.sort), correct:num(v.correct),
+          options_en: fromLines(v.options_en), options_sw: fromLines(v.options_sw) });
+        render();
+      } catch(err){ fail(err); }
+    };
+  }
+  $('#mod').onchange = render;
+  render();
+};
+
+VIEWS.products = async () => {
+  page('Products', 'The PPE shop catalogue.',
+    `<div class="toolbar"><button class="btn" id="add">Add product</button></div><div id="t"></div>`);
+  const cats = await fetchAll('thinksafety_categories', { col:'sort' });
+  const rows = await fetchAll('thinksafety_products', { col:'sort' });
+  const fields = [
+    { key:'id', label:'ID' }, { key:'sort', label:'Sort order', type:'number' },
+    { key:'name_en', label:'Name (English)' }, { key:'name_sw', label:'Name (Swahili)' },
+    { key:'category', label:'Category', type:'select', options: cats.filter(c=>c.id!=='All').map(c=>c.id) },
+    { key:'price', label:'Price', type:'number' },
+    { key:'sizes', label:'Sizes, one per line', type:'textarea' },
+    { key:'in_stock', label:'In stock', type:'checkbox' },
+    { key:'published', label:'Published', type:'checkbox' },
+  ];
+  const toLines = a => Array.isArray(a) ? a.join('\n') : '';
+  const fromLines = s => String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  $('#t').innerHTML = table(['#','ID','Name (EN)','Category','Price','Sizes','Stock',''], rows, p => `<tr>
+    <td>${p.sort}</td><td><code>${esc(p.id)}</code></td><td>${esc(p.name_en)}</td><td>${esc(p.category)}</td>
+    <td>${(p.price||0).toLocaleString()}</td><td class="muted">${esc((p.sizes||[]).join(', '))}</td>
+    <td><span class="tag ${p.in_stock?'yes':'no'}">${p.in_stock?'Yes':'No'}</span></td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(p.id)}">Edit</button>
+      <button class="btn danger sm" data-del="${esc(p.id)}">Delete</button></td></tr>`);
+  const save = async (v, id) => {
+    await saveRow('thinksafety_products', { ...(id?{id}:{}) , ...v, sort:num(v.sort), price:num(v.price), sizes: fromLines(v.sizes) });
+    VIEWS.products();
+  };
+  $('#add').onclick = async () => {
+    const v = await editDialog('New product', fields, { sort: rows.length, in_stock:true, published:true });
+    if (v) try { await save(v); } catch(e){ fail(e); }
+  };
+  $('#t').onclick = async e => {
+    const id = e.target.dataset.edit || e.target.dataset.del;
+    if (!id) return;
+    if (e.target.dataset.del) { if (await deleteRow('thinksafety_products', { id }, `product "${id}"`)) VIEWS.products(); return; }
+    const r = rows.find(x => x.id === id);
+    const v = await editDialog('Edit product', fields, { ...r, sizes: toLines(r.sizes) });
+    if (v) try { await save(v, id); } catch(err){ fail(err); }
+  };
+};
+
+VIEWS.categories = async () => {
+  page('Categories', 'Shop filter chips.', `<div class="toolbar"><button class="btn" id="add">Add category</button></div><div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_categories', { col:'sort' });
+  const fields = [{key:'id',label:'ID'},{key:'sort',label:'Sort',type:'number'},{key:'label_en',label:'Label (English)'},{key:'label_sw',label:'Label (Swahili)'}];
+  $('#t').innerHTML = table(['#','ID','English','Swahili',''], rows, c => `<tr>
+    <td>${c.sort}</td><td><code>${esc(c.id)}</code></td><td>${esc(c.label_en)}</td><td>${esc(c.label_sw)}</td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(c.id)}">Edit</button>
+      <button class="btn danger sm" data-del="${esc(c.id)}">Delete</button></td></tr>`);
+  $('#add').onclick = async () => { const v = await editDialog('New category', fields, { sort: rows.length }); if (v) try { await saveRow('thinksafety_categories', {...v, sort:num(v.sort)}); VIEWS.categories(); } catch(e){ fail(e); } };
+  $('#t').onclick = async e => {
+    const id = e.target.dataset.edit || e.target.dataset.del; if (!id) return;
+    if (e.target.dataset.del) { if (await deleteRow('thinksafety_categories', { id }, `category "${id}"`)) VIEWS.categories(); return; }
+    const v = await editDialog('Edit category', fields, rows.find(x=>x.id===id));
+    if (v) try { await saveRow('thinksafety_categories', {...v, sort:num(v.sort)}); VIEWS.categories(); } catch(err){ fail(err); }
+  };
+};
+
+VIEWS.stories = async () => {
+  page('Stories', 'Worker voices shown on the courses screen.', `<div class="toolbar"><button class="btn" id="add">Add story</button></div><div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_stories', { col:'sort' });
+  const fields = [
+    {key:'id',label:'ID'},{key:'sort',label:'Sort',type:'number'},{key:'person_name',label:'Person name'},
+    {key:'role_en',label:'Role (English)'},{key:'role_sw',label:'Role (Swahili)'},
+    {key:'title_en',label:'Headline (English)'},{key:'title_sw',label:'Headline (Swahili)'},
+    {key:'quote_en',label:'Quote (English)',type:'textarea'},{key:'quote_sw',label:'Quote (Swahili)',type:'textarea'},
+    {key:'length_label',label:'Video length label'},{key:'tint',label:'Tint'},{key:'published',label:'Published',type:'checkbox'},
+  ];
+  $('#t').innerHTML = table(['#','Person','Headline (EN)','Length','Live',''], rows, s => `<tr>
+    <td>${s.sort}</td><td>${esc(s.person_name)}<br><span class="muted">${esc(s.role_en)}</span></td>
+    <td>${esc(s.title_en)}</td><td>${esc(s.length_label)}</td>
+    <td><span class="tag ${s.published?'yes':'no'}">${s.published?'Live':'Hidden'}</span></td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(s.id)}">Edit</button>
+      <button class="btn danger sm" data-del="${esc(s.id)}">Delete</button></td></tr>`);
+  $('#add').onclick = async () => { const v = await editDialog('New story', fields, { sort: rows.length, published:true }); if (v) try { await saveRow('thinksafety_stories', {...v, sort:num(v.sort)}); VIEWS.stories(); } catch(e){ fail(e); } };
+  $('#t').onclick = async e => {
+    const id = e.target.dataset.edit || e.target.dataset.del; if (!id) return;
+    if (e.target.dataset.del) { if (await deleteRow('thinksafety_stories', { id }, `story "${id}"`)) VIEWS.stories(); return; }
+    const v = await editDialog('Edit story', fields, rows.find(x=>x.id===id));
+    if (v) try { await saveRow('thinksafety_stories', {...v, sort:num(v.sort)}); VIEWS.stories(); } catch(err){ fail(err); }
+  };
+};
+
+VIEWS.rewards = async () => {
+  page('Rewards', 'Unlocked when a worker passes a module quiz. Percentage is a fraction, so 0.1 is 10%.',
+    `<div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_rewards');
+  const fields = [
+    {key:'module_id',label:'Module ID',readonly:true},{key:'code',label:'Code'},
+    {key:'pct',label:'Percentage off (0.1 = 10%), blank if none',type:'number'},
+    {key:'free_delivery',label:'Free delivery',type:'checkbox'},
+    {key:'gift_product_id',label:'Free gift product ID, blank if none'},
+    {key:'label_en',label:'Label (English)'},{key:'label_sw',label:'Label (Swahili)'},
+  ];
+  $('#t').innerHTML = table(['Module','Code','Benefit','Label (EN)',''], rows, r => `<tr>
+    <td><code>${esc(r.module_id)}</code></td><td><b>${esc(r.code)}</b></td>
+    <td>${r.pct ? Math.round(r.pct*100)+'% off' : r.free_delivery ? 'Free delivery' : r.gift_product_id ? 'Gift: '+esc(r.gift_product_id) : '-'}</td>
+    <td>${esc(r.label_en)}</td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(r.module_id)}">Edit</button></td></tr>`);
+  $('#t').onclick = async e => {
+    const id = e.target.dataset.edit; if (!id) return;
+    const v = await editDialog('Edit reward', fields, rows.find(x=>x.module_id===id));
+    if (v) try { await saveRow('thinksafety_rewards', {...v, pct:num(v.pct), gift_product_id: v.gift_product_id || null}, 'module_id'); VIEWS.rewards(); } catch(err){ fail(err); }
+  };
+};
+
+VIEWS.users = async () => {
+  page('Users', 'Workers who have registered in the app. Approve an account to let it in.',
+    `<div class="toolbar"><input type="search" id="q" placeholder="Search name or phone"></div><div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_users', { col:'created_at', asc:false });
+  function render(){
+    const q = ($('#q').value||'').toLowerCase();
+    const list = rows.filter(u => (u.full_name||'').toLowerCase().includes(q) || (u.phone||'').includes(q));
+    $('#t').innerHTML = table(['Name','Phone','Type','Language','XP','Approved','Joined',''], list, u => `<tr>
+      <td>${esc(u.full_name) || '<span class="muted">(no name)</span>'}</td><td>${esc(u.phone)||'-'}</td>
+      <td>${esc(u.account_type)}</td><td>${esc(u.lang)}</td><td>${u.xp||0}</td>
+      <td><span class="tag ${u.approved?'approved':'pending'}">${u.approved?'Approved':'Pending'}</span></td>
+      <td class="muted">${esc((u.created_at||'').slice(0,10))}</td>
+      <td class="actions">
+        <button class="btn ${u.approved?'ghost':'lime'} sm" data-toggle="${u.id}">${u.approved?'Revoke':'Approve'}</button>
+        <button class="btn danger sm" data-del="${u.id}">Delete</button></td></tr>`);
+  }
+  $('#q').oninput = render;
+  $('#t').onclick = async e => {
+    const t = e.target.dataset.toggle, d = e.target.dataset.del;
+    if (t) {
+      const u = rows.find(x => x.id === t);
+      const { error } = await sb.from('thinksafety_users').update({ approved: !u.approved }).eq('id', t);
+      if (error) return fail(error);
+      u.approved = !u.approved; toast(u.approved ? 'Approved' : 'Approval revoked'); render();
+    } else if (d) {
+      if (await deleteRow('thinksafety_users', { id: d }, 'this worker and all their progress')) VIEWS.users();
+    }
+  };
+  render();
+};
+
+VIEWS.orders = async () => {
+  page('Orders', 'PPE orders placed from the app.', `<div id="t"></div>`);
+  const [orders, items] = await Promise.all([
+    fetchAll('thinksafety_orders', { col:'created_at', asc:false }), fetchAll('thinksafety_order_items'),
+  ]);
+  $('#t').innerHTML = table(['Placed','Items','Subtotal','Discount','Total','Status',''], orders, o => {
+    const its = items.filter(i => i.order_id === o.id);
+    return `<tr><td class="muted">${esc((o.created_at||'').slice(0,16).replace('T',' '))}</td>
+      <td>${its.map(i=>`${esc(i.product_name)} x${i.qty}${i.size?' ('+esc(i.size)+')':''}`).join('<br>') || '<span class="muted">-</span>'}</td>
+      <td>${(o.subtotal||0).toLocaleString()}</td><td>${(o.discount||0).toLocaleString()}</td>
+      <td><b>${(o.total||0).toLocaleString()}</b></td>
+      <td><span class="tag ${esc(o.status)}">${esc(o.status)}</span></td>
+      <td class="actions"><button class="btn danger sm" data-del="${o.id}">Delete</button></td></tr>`;
+  });
+  $('#t').onclick = async e => { const d = e.target.dataset.del; if (d && await deleteRow('thinksafety_orders', { id:d }, 'this order')) VIEWS.orders(); };
+};
+
+VIEWS.payments = async () => {
+  page('Payments', 'Lipa Namba payments wait here until you approve them. Approving an order releases it for delivery.',
+    `<div class="toolbar">
+      <select id="f"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="">All</option></select>
+     </div><div id="t"></div>`);
+  const all = await fetchAll('thinksafety_payments', { col:'created_at', asc:false });
+  function render(){
+    const f = $('#f').value;
+    const rows = f ? all.filter(p => p.status === f) : all;
+    $('#t').innerHTML = table(['Submitted','Paid from','Amount','Status','Note',''], rows, p => `<tr>
+      <td class="muted">${esc((p.created_at||'').slice(0,16).replace('T',' '))}</td>
+      <td><b>${esc(p.phone)}</b></td><td>${(p.amount||0).toLocaleString()}</td>
+      <td><span class="tag ${esc(p.status)}">${esc(p.status)}</span></td>
+      <td class="muted">${esc(p.note||'')}</td>
+      <td class="actions">
+        ${p.status !== 'approved' ? `<button class="btn lime sm" data-ok="${p.id}">Approve</button>` : ''}
+        ${p.status !== 'rejected' ? `<button class="btn danger sm" data-no="${p.id}">Reject</button>` : ''}
+      </td></tr>`);
+  }
+  $('#f').onchange = render;
+  $('#t').onclick = async e => {
+    const ok = e.target.dataset.ok, no = e.target.dataset.no;
+    const id = ok || no; if (!id) return;
+    const status = ok ? 'approved' : 'rejected';
+    let note = null;
+    if (no) { note = prompt('Reason for rejecting (optional):') || null; }
+    const { data:{ user } } = await sb.auth.getUser();
+    const { error } = await sb.from('thinksafety_payments')
+      .update({ status, note, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', id);
+    if (error) return fail(error);
+    // Keep the order in step with its payment, so an approved payment cannot leave a pending order.
+    const pay = all.find(p => p.id === id);
+    if (pay?.order_id) await sb.from('thinksafety_orders').update({ status: ok ? 'paid' : 'cancelled' }).eq('id', pay.order_id);
+    toast(ok ? 'Payment approved' : 'Payment rejected');
+    VIEWS.payments();
+  };
+  render();
+};
+
+VIEWS.comments = async () => {
+  page('Comments', 'Comments left on lessons and modules. Unapprove to hide one from the app.', `<div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_comments', { col:'created_at', asc:false });
+  $('#t').innerHTML = table(['When','Where','Author','Comment','Shown',''], rows, c => `<tr>
+    <td class="muted">${esc((c.created_at||'').slice(0,16).replace('T',' '))}</td>
+    <td><code>${esc(c.target_key)}</code></td><td>${esc(c.author_name)}</td><td>${esc(c.body)}</td>
+    <td><span class="tag ${c.approved?'yes':'no'}">${c.approved?'Yes':'Hidden'}</span></td>
+    <td class="actions"><button class="btn ghost sm" data-toggle="${c.id}">${c.approved?'Hide':'Show'}</button>
+      <button class="btn danger sm" data-del="${c.id}">Delete</button></td></tr>`);
+  $('#t').onclick = async e => {
+    const t = e.target.dataset.toggle, d = e.target.dataset.del;
+    if (t) {
+      const c = rows.find(x=>x.id===t);
+      const { error } = await sb.from('thinksafety_comments').update({ approved: !c.approved }).eq('id', t);
+      if (error) return fail(error);
+      VIEWS.comments();
+    } else if (d && await deleteRow('thinksafety_comments', { id:d }, 'this comment')) VIEWS.comments();
+  };
+};
+
+VIEWS.texts = async () => {
+  page('App text', 'Every label in the app, in both languages. Editing here changes the app without a new release.',
+    `<div class="toolbar">
+       <input type="search" id="q" placeholder="Search key or wording">
+       <button class="btn ghost" id="seed">Restore missing defaults</button>
+       <span class="muted" id="count"></span>
+     </div><div id="t"></div>`);
+  let rows = await fetchAll('thinksafety_texts', { col:'key' });
+  function render(){
+    const q = ($('#q').value||'').toLowerCase();
+    const list = rows.filter(r => r.key.toLowerCase().includes(q) || (r.en||'').toLowerCase().includes(q) || (r.sw||'').toLowerCase().includes(q));
+    $('#count').textContent = `${list.length} of ${rows.length} keys`;
+    $('#t').innerHTML = table(['Key','English','Swahili',''], list, r => `<tr>
+      <td><code>${esc(r.key)}</code></td><td>${esc(r.en)}</td><td>${esc(r.sw)}</td>
+      <td class="actions"><button class="btn ghost sm" data-edit="${esc(r.key)}">Edit</button></td></tr>`);
+  }
+  $('#q').oninput = render;
+  $('#seed').onclick = async () => {
+    // Inserts only the keys that are missing, so wording you have already changed is never clobbered.
+    const have = new Set(rows.map(r => r.key));
+    const missing = Object.entries(DEFAULT_TEXTS).filter(([k]) => !have.has(k)).map(([key, v]) => ({ key, en: v.en, sw: v.sw }));
+    if (!missing.length) return toast('Nothing missing, all defaults are present');
+    if (!confirm(`Insert ${missing.length} missing text keys? Existing wording is left untouched.`)) return;
+    const { error } = await sb.from('thinksafety_texts').insert(missing);
+    if (error) return fail(error);
+    toast(`Added ${missing.length} keys`);
+    rows = await fetchAll('thinksafety_texts', { col:'key' }); render();
+  };
+  $('#t').onclick = async e => {
+    const key = e.target.dataset.edit; if (!key) return;
+    const v = await editDialog(`Edit "${key}"`, [
+      { key:'key', label:'Key', readonly:true },
+      { key:'en', label:'English', type:'textarea' }, { key:'sw', label:'Swahili', type:'textarea' },
+    ], rows.find(r => r.key === key));
+    if (!v) return;
+    try { await saveRow('thinksafety_texts', { key, en:v.en, sw:v.sw }); rows = await fetchAll('thinksafety_texts', { col:'key' }); render(); } catch(err){ fail(err); }
+  };
+  render();
+};
+
+VIEWS.settings = async () => {
+  page('Settings', 'Platform-wide values the app reads at startup.', `<div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_settings', { col:'key' });
+  const help = {
+    lipa_namba: 'The M-Pesa Lipa Namba shown on the payment screen.',
+    account_name: 'Account name shown under the Lipa Namba.',
+    currency_prefix: 'Prefix before every price, including the trailing space.',
+    pass_mark_pct: 'Percentage needed to pass a module quiz.',
+    xp_per_lesson: 'XP awarded the first time a lesson is completed.',
+  };
+  $('#t').innerHTML = table(['Setting','Value','What it does',''], rows, s => `<tr>
+    <td><code>${esc(s.key)}</code></td><td><b>${esc(s.value)}</b></td>
+    <td class="muted">${esc(help[s.key]||'')}</td>
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(s.key)}">Edit</button></td></tr>`);
+  $('#t').onclick = async e => {
+    const key = e.target.dataset.edit; if (!key) return;
+    const v = await editDialog(`Edit "${key}"`, [{ key:'key', label:'Key', readonly:true }, { key:'value', label:'Value' }], rows.find(r=>r.key===key));
+    if (v) try { await saveRow('thinksafety_settings', { key, value: v.value }); VIEWS.settings(); } catch(err){ fail(err); }
+  };
+};
+</script>
+</body>
+</html>
