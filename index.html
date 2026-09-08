@@ -113,6 +113,17 @@ dialog .dlg-foot{padding:14px 20px;border-top:1px solid var(--n200);display:flex
       <a href="#" id="forgotLink">Forgot your password?</a>
     </p>
 
+    <div id="pastePanel" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--n200)">
+      <p class="muted" style="font-size:12px;margin-bottom:8px">
+        Reset link sending you to a page that will not load? Paste the whole link here instead:
+        either the link from the email, or whatever ended up in your browser address bar.
+      </p>
+      <div class="field">
+        <textarea id="pastedLink" placeholder="Paste the link here" style="min-height:64px;font-size:12px"></textarea>
+      </div>
+      <button class="btn ghost" style="width:100%" id="useLinkBtn" type="button">Use this link</button>
+    </div>
+
     <div id="resetPanel" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--n200)">
       <div class="field">
         <label for="newPw">New password</label>
@@ -232,6 +243,45 @@ $('#forgotLink').addEventListener('click', async e => {
 if (location.hash.includes('type=recovery')) {
   $('#resetPanel').style.display = 'block';
 }
+
+// Accepts a pasted reset link so the project's redirect configuration stops mattering.
+// Two shapes arrive in practice:
+//   the emailed link      .../auth/v1/verify?token=<hash>&type=recovery&redirect_to=...
+//   the post-redirect URL http://whatever/#access_token=...&refresh_token=...&type=recovery
+$('#useLinkBtn').addEventListener('click', async () => {
+  const raw = ($('#pastedLink').value || '').trim();
+  const box = $('#loginErr');
+  const show = (cls, msg) => { box.className = cls; box.textContent = msg; box.style.display = 'block'; };
+  if (!raw) return show('err', 'Paste the link first.');
+
+  try {
+    const hashPart = raw.includes('#') ? raw.slice(raw.indexOf('#') + 1) : '';
+    const hash = new URLSearchParams(hashPart);
+    const access_token = hash.get('access_token');
+    const refresh_token = hash.get('refresh_token');
+
+    if (access_token && refresh_token) {
+      const { error } = await sb.auth.setSession({ access_token, refresh_token });
+      if (error) throw error;
+    } else {
+      // Fall back to the emailed verify link, which carries a single-use token hash.
+      const q = new URLSearchParams(raw.includes('?') ? raw.slice(raw.indexOf('?') + 1).split('#')[0] : '');
+      const token_hash = q.get('token_hash') || q.get('token');
+      const type = q.get('type') || 'recovery';
+      if (!token_hash) return show('err', 'That does not look like a reset link. Copy the whole thing, including everything after the # or ?.');
+      const { error } = await sb.auth.verifyOtp({ token_hash, type });
+      if (error) throw error;
+    }
+
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return show('err', 'The link did not sign you in. Request a fresh one.');
+    show('ok', 'Signed in as ' + user.email + '. Choose a new password below.');
+    $('#pastePanel').style.display = 'none';
+    $('#resetPanel').style.display = 'block';
+  } catch (err) {
+    show('err', (err && err.message) || 'That link could not be used. Request a fresh one and use it once.');
+  }
+});
 
 $('#setPwBtn').addEventListener('click', async () => {
   const pw = $('#newPw').value;
