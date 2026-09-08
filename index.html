@@ -109,6 +109,20 @@ dialog .dlg-foot{padding:14px 20px;border-top:1px solid var(--n200);display:flex
       <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required></div>
       <button class="btn" style="width:100%" id="loginBtn" type="submit">Log in</button>
     </form>
+    <p style="margin-top:12px;font-size:13px">
+      <a href="#" id="forgotLink">Forgot your password?</a>
+    </p>
+
+    <div id="resetPanel" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--n200)">
+      <div class="field">
+        <label for="newPw">New password</label>
+        <input id="newPw" type="password" autocomplete="new-password" minlength="8">
+      </div>
+      <button class="btn" style="width:100%" id="setPwBtn" type="button">Set new password</button>
+      <p class="muted" style="margin-top:8px;font-size:12px">
+        You followed a reset link, so you can choose a new password now. At least 8 characters.
+      </p>
+    </div>
     <p class="muted" style="margin-top:16px;font-size:12px;line-height:1.5">
       Accounts are created in Supabase and added to the admins table. Signing in here with an
       account that is not an admin gives no access to anything: the database enforces it, not this page.
@@ -198,6 +212,37 @@ $('#loginForm').addEventListener('submit', async e => {
 });
 
 $('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+// ---- password reset ----
+// Sends the email, then lets the person set a new password when they follow the link back here.
+// Nobody, including whoever set this up, ever handles the password itself.
+$('#forgotLink').addEventListener('click', async e => {
+  e.preventDefault();
+  const email = ($('#email').value || '').trim();
+  if (!email) { $('#loginErr').textContent = 'Type your email address first, then click the link.'; $('#loginErr').style.display='block'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  $('#loginErr').style.display = 'none';
+  const box = $('#loginErr');
+  box.className = error ? 'err' : 'ok';
+  box.textContent = error ? error.message : 'Reset link sent. Check ' + email + ', then follow the link back here.';
+  box.style.display = 'block';
+});
+
+// Supabase sends people back with the recovery token in the URL fragment.
+if (location.hash.includes('type=recovery')) {
+  $('#resetPanel').style.display = 'block';
+}
+
+$('#setPwBtn').addEventListener('click', async () => {
+  const pw = $('#newPw').value;
+  if (!pw || pw.length < 8) { alert('Use at least 8 characters.'); return; }
+  const { error } = await sb.auth.updateUser({ password: pw });
+  const box = $('#loginErr');
+  box.className = error ? 'err' : 'ok';
+  box.textContent = error ? error.message : 'Password changed. You are signed in.';
+  box.style.display = 'block';
+  if (!error) { $('#resetPanel').style.display = 'none'; history.replaceState(null,'',location.pathname); afterLogin(); }
+});
 
 async function afterLogin(){
   const { data:{ user } } = await sb.auth.getUser();
