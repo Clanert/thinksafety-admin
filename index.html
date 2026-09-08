@@ -625,6 +625,8 @@ VIEWS.products = async () => {
     { key:'price', label:'Price', type:'number' },
     { key:'image_url', label:'Product photo', type:'image' },
     { key:'sizes', label:'Sizes, one per line', type:'textarea' },
+    { key:'points_redeemable', label:'Workers may spend points on this', type:'checkbox' },
+    { key:'max_points_discount_pct', label:'Most points may take off this item, as a percentage (blank uses the global cap)', type:'number' },
     { key:'in_stock', label:'In stock', type:'checkbox' },
     { key:'published', label:'Published', type:'checkbox' },
   ];
@@ -639,7 +641,8 @@ VIEWS.products = async () => {
     <td class="actions"><button class="btn ghost sm" data-edit="${esc(p.id)}">Edit</button>
       <button class="btn danger sm" data-del="${esc(p.id)}">Delete</button></td></tr>`);
   const save = async (v, id) => {
-    await saveRow('thinksafety_products', { ...(id?{id}:{}) , ...v, sort:num(v.sort), price:num(v.price), sizes: fromLines(v.sizes) });
+    await saveRow('thinksafety_products', { ...(id?{id}:{}) , ...v, sort:num(v.sort), price:num(v.price),
+      max_points_discount_pct: num(v.max_points_discount_pct), sizes: fromLines(v.sizes) });
     VIEWS.products();
   };
   $('#add').onclick = async () => {
@@ -704,25 +707,49 @@ VIEWS.stories = async () => {
 };
 
 VIEWS.rewards = async () => {
-  page('Rewards', 'Unlocked when a worker passes a module quiz. Percentage is a fraction, so 0.1 is 10%.',
-    `<div id="t"></div>`);
+  page('Rewards', 'Coupons a worker unlocks by finishing training. A reward can be money off, free delivery, or a free product such as earplugs. Percentage is a fraction, so 0.1 is 10%.',
+    `<div class="toolbar"><button class="btn" id="add">Add reward</button></div><div id="t"></div>`);
   const rows = await fetchAll('thinksafety_rewards');
+  const prods = await fetchAll('thinksafety_products', { col:'sort' });
+  const mods = await fetchAll('thinksafety_modules', { col:'sort' });
   const fields = [
-    {key:'module_id',label:'Module ID',readonly:true},{key:'code',label:'Code'},
+    {key:'module_id',label:'Unlocked by finishing this module',type:'select',options:mods.map(m=>m.id)},
+    {key:'min_modules_completed',label:'Or unlock once this many modules are finished (blank to ignore)',type:'number'},
+    {key:'code',label:'Code'},
     {key:'pct',label:'Percentage off (0.1 = 10%), blank if none',type:'number'},
     {key:'free_delivery',label:'Free delivery',type:'checkbox'},
-    {key:'gift_product_id',label:'Free gift product ID, blank if none'},
+    {key:'gift_product_id',label:'Free gift product, blank if none',type:'select',
+     options:[''].concat(prods.map(p=>p.id))},
     {key:'label_en',label:'Label (English)'},{key:'label_sw',label:'Label (Swahili)'},
   ];
-  $('#t').innerHTML = table(['Module','Code','Benefit','Label (EN)',''], rows, r => `<tr>
-    <td><code>${esc(r.module_id)}</code></td><td><b>${esc(r.code)}</b></td>
-    <td>${r.pct ? Math.round(r.pct*100)+'% off' : r.free_delivery ? 'Free delivery' : r.gift_product_id ? 'Gift: '+esc(r.gift_product_id) : '-'}</td>
+  const nameOf = id => (prods.find(p => p.id === id) || {}).name_en || id;
+  $('#t').innerHTML = table(['Unlocks on','Code','Benefit','Label (EN)',''], rows, r => `<tr>
+    <td><code>${esc(r.module_id)}</code>${r.min_modules_completed ? `<br><span class="muted">or ${r.min_modules_completed} modules done</span>` : ''}</td>
+    <td><b>${esc(r.code)}</b></td>
+    <td>${r.pct ? Math.round(r.pct*100)+'% off' : r.free_delivery ? 'Free delivery' : r.gift_product_id ? 'Free gift: '+esc(nameOf(r.gift_product_id)) : '-'}</td>
     <td>${esc(r.label_en)}</td>
-    <td class="actions"><button class="btn ghost sm" data-edit="${esc(r.module_id)}">Edit</button></td></tr>`);
+    <td class="actions"><button class="btn ghost sm" data-edit="${esc(r.module_id)}">Edit</button>
+      <button class="btn danger sm" data-del="${esc(r.module_id)}">Delete</button></td></tr>`);
+  $('#add').onclick = async () => {
+    const v = await editDialog('New reward', fields, { free_delivery:false });
+    if (!v) return;
+    try {
+      await saveRow('thinksafety_rewards', {...v, pct:num(v.pct),
+        min_modules_completed:num(v.min_modules_completed),
+        gift_product_id: v.gift_product_id || null}, 'module_id');
+      VIEWS.rewards();
+    } catch(e){ fail(e); }
+  };
   $('#t').onclick = async e => {
-    const id = e.target.dataset.edit; if (!id) return;
+    const id = e.target.dataset.edit || e.target.dataset.del; if (!id) return;
+    if (e.target.dataset.del) { if (await deleteRow('thinksafety_rewards', { module_id:id }, `the reward for "${id}"`)) VIEWS.rewards(); return; }
     const v = await editDialog('Edit reward', fields, rows.find(x=>x.module_id===id));
-    if (v) try { await saveRow('thinksafety_rewards', {...v, pct:num(v.pct), gift_product_id: v.gift_product_id || null}, 'module_id'); VIEWS.rewards(); } catch(err){ fail(err); }
+    if (v) try {
+      await saveRow('thinksafety_rewards', {...v, pct:num(v.pct),
+        min_modules_completed:num(v.min_modules_completed),
+        gift_product_id: v.gift_product_id || null}, 'module_id');
+      VIEWS.rewards();
+    } catch(err){ fail(err); }
   };
 };
 
@@ -733,9 +760,11 @@ VIEWS.users = async () => {
   function render(){
     const q = ($('#q').value||'').toLowerCase();
     const list = rows.filter(u => (u.full_name||'').toLowerCase().includes(q) || (u.phone||'').includes(q));
-    $('#t').innerHTML = table(['Name','Phone','Type','Language','XP','Approved','Joined',''], list, u => `<tr>
-      <td>${esc(u.full_name) || '<span class="muted">(no name)</span>'}</td><td>${esc(u.phone)||'-'}</td>
+    $('#t').innerHTML = table(['Name','Phone / Email','Type','Language','XP','Points','Approved','Joined',''], list, u => `<tr>
+      <td>${esc(u.full_name) || '<span class="muted">(no name)</span>'}</td>
+      <td>${esc(u.phone || u.email) || '-'}</td>
       <td>${esc(u.account_type)}</td><td>${esc(u.lang)}</td><td>${u.xp||0}</td>
+      <td><b>${u.points||0}</b></td>
       <td><span class="tag ${u.approved?'approved':'pending'}">${u.approved?'Approved':'Pending'}</span></td>
       <td class="muted">${esc((u.created_at||'').slice(0,10))}</td>
       <td class="actions">
@@ -884,6 +913,11 @@ VIEWS.settings = async () => {
     home_photo_url: 'The photo in the home screen header. Upload a picture here.',
     pass_mark_pct: 'Percentage needed to pass a module quiz.',
     xp_per_lesson: 'XP awarded the first time a lesson is completed.',
+    points_per_lesson: 'Points earned the first time a lesson is finished.',
+    points_per_quiz_pass: 'Points banked for passing a quiz well enough.',
+    points_bank_pass_pct: 'The quiz score needed before any points are banked, as a percentage.',
+    points_per_currency_unit: 'How many points buy one shilling off. 10 means 100 points is 10 off.',
+    max_points_discount_pct: 'The most of an order points may pay for, as a percentage, unless a product overrides it.',
   };
   $('#t').innerHTML = table(['Setting','Value','What it does',''], rows, s => `<tr>
     <td><code>${esc(s.key)}</code></td><td><b>${esc(s.value)}</b></td>
