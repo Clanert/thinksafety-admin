@@ -791,9 +791,10 @@ VIEWS.orders = async () => {
   const [orders, items] = await Promise.all([
     fetchAll('thinksafety_orders', { col:'created_at', asc:false }), fetchAll('thinksafety_order_items'),
   ]);
-  $('#t').innerHTML = table(['Placed','Items','Subtotal','Discount','Total','Status',''], orders, o => {
+  $('#t').innerHTML = table(['Placed','Deliver to','Items','Subtotal','Discount','Total','Status',''], orders, o => {
     const its = items.filter(i => i.order_id === o.id);
     return `<tr><td class="muted">${esc((o.created_at||'').slice(0,16).replace('T',' '))}</td>
+      <td>${esc(o.delivery_location) || '<span class="muted">not given</span>'}${o.contact_phone ? '<br><span class="muted">'+esc(o.contact_phone)+'</span>' : ''}${o.delivery_notes ? '<br><span class="muted">'+esc(o.delivery_notes)+'</span>' : ''}</td>
       <td>${its.map(i=>`${esc(i.product_name)} x${i.qty}${i.size?' ('+esc(i.size)+')':''}`).join('<br>') || '<span class="muted">-</span>'}</td>
       <td>${(o.subtotal||0).toLocaleString()}</td><td>${(o.discount||0).toLocaleString()}</td>
       <td><b>${(o.total||0).toLocaleString()}</b></td>
@@ -812,10 +813,12 @@ VIEWS.payments = async () => {
   function render(){
     const f = $('#f').value;
     const rows = f ? all.filter(p => p.status === f) : all;
-    $('#t').innerHTML = table(['Submitted','Paid from','Amount','Status','Note',''], rows, p => `<tr>
+    $('#t').innerHTML = table(['Submitted','Paid from','Amount','Status','Ref','Proof','Note',''], rows, p => `<tr>
       <td class="muted">${esc((p.created_at||'').slice(0,16).replace('T',' '))}</td>
       <td><b>${esc(p.phone)}</b></td><td>${(p.amount||0).toLocaleString()}</td>
       <td><span class="tag ${esc(p.status)}">${esc(p.status)}</span></td>
+      <td class="muted">${esc(p.reference||'')}</td>
+      <td>${p.proof_url ? `<a href="${esc(p.proof_url)}" target="_blank" rel="noopener"><img src="${esc(p.proof_url)}" alt="proof" style="width:46px;height:46px;object-fit:cover"></a>` : '<span class="muted">none</span>'}</td>
       <td class="muted">${esc(p.note||'')}</td>
       <td class="actions">
         ${p.status !== 'approved' ? `<button class="btn lime sm" data-ok="${p.id}">Approve</button>` : ''}
@@ -910,6 +913,8 @@ VIEWS.settings = async () => {
     account_name: 'Account name shown under the Lipa Namba.',
     currency_prefix: 'Prefix before every price, including the trailing space.',
     worker_photo_url: 'The worker photo on the opening screen. Upload a picture here.',
+    admin_email: 'Where notification emails are sent.',
+    admin_webhook_url: 'The Google Apps Script URL that sends those emails. See admin-email-notifier.gs in this repository.',
     home_photo_url: 'The photo in the home screen header. Upload a picture here.',
     pass_mark_pct: 'Percentage needed to pass a module quiz.',
     xp_per_lesson: 'XP awarded the first time a lesson is completed.',
