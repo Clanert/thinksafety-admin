@@ -349,6 +349,16 @@ function editDialog(title, fields, values){
       if (f.type === 'textarea') return `<div class="field"><label>${esc(f.label)}</label><textarea data-k="${f.key}">${esc(v)}</textarea></div>`;
       if (f.type === 'checkbox') return `<div class="field"><label><input type="checkbox" data-k="${f.key}" style="width:auto;margin-right:8px"${v ? ' checked':''}>${esc(f.label)}</label></div>`;
       if (f.type === 'select') return `<div class="field"><label>${esc(f.label)}</label><select data-k="${f.key}">${f.options.map(o=>`<option value="${esc(o)}"${String(v)===String(o)?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+      if (f.type === 'file') return `<div class="field">
+        <label>${esc(f.label)}</label>
+        <input data-k="${f.key}" type="text" value="${esc(v)}" placeholder="No document yet">
+        ${v ? `<a href="${esc(v)}" target="_blank" rel="noopener" style="font-size:12px">Open current document</a>` : ''}
+        <div class="row" style="margin-top:8px">
+          <input type="file" accept="application/pdf" data-file="${f.key}" style="flex:1;min-width:0">
+          <button class="btn ghost sm" type="button" data-upload="${f.key}">Upload</button>
+        </div>
+        <div class="muted" data-status="${f.key}" style="font-size:12px;margin-top:4px"></div>
+      </div>`;
       if (f.type === 'image') return `<div class="field">
         <label>${esc(f.label)}</label>
         <input data-k="${f.key}" type="text" value="${esc(v)}" placeholder="No image yet">
@@ -385,9 +395,10 @@ function editDialog(title, fields, values){
         // The bucket caps at 500 MB. Images are held to 10 MB so a phone photo straight off the
         // camera does not become a slow download for every worker on a weak connection.
         const isImage = file.type.startsWith('image/');
-        const cap = isImage ? 10 * 1024 * 1024 : 500 * 1024 * 1024;
+        const isDoc = file.type === 'application/pdf';
+        const cap = isImage ? 10 * 1024 * 1024 : isDoc ? 25 * 1024 * 1024 : 500 * 1024 * 1024;
         if (file.size > cap) {
-          status.textContent = `That file is ${(file.size/1048576).toFixed(1)} MB, over the ${isImage ? '10 MB image' : '500 MB video'} limit.`;
+          status.textContent = `That file is ${(file.size/1048576).toFixed(1)} MB, over the ${isImage ? '10 MB image' : isDoc ? '25 MB document' : '500 MB video'} limit.`;
           return;
         }
         btn.disabled = true;
@@ -519,6 +530,8 @@ VIEWS.lessons = async () => {
     { key:'video_poster_url', label:'Lesson video thumbnail', type:'image' },
     { key:'diagram_url', label:'Diagram', type:'image' },
     { key:'photo_url', label:'Reference photo', type:'image' },
+    { key:'material_url', label:'Handout (PDF)', type:'file' },
+    { key:'material_name', label:'Handout name shown in the app' },
   ]);
   async function render(){
     const mid = $('#mod').value;
