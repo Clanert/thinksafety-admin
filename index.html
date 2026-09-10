@@ -850,9 +850,16 @@ VIEWS.orders = async () => {
   const [orders, items] = await Promise.all([
     fetchAll('thinksafety_orders', { col:'created_at', asc:false }), fetchAll('thinksafety_order_items'),
   ]);
-  $('#t').innerHTML = table(['Placed','Deliver to','Items','Subtotal','Discount','Total','Status',''], orders, o => {
+  $('#t').innerHTML = table(['Placed','Paying as','Deliver to','Items','Subtotal','Discount','Total','Status',''], orders, o => {
     const its = items.filter(i => i.order_id === o.id);
+    // Verified means the buyer received a code on that number, so an M-Pesa payment from it is
+    // theirs. Unverified is not a refusal, it just means match it by hand before sending goods.
+    const payer = o.payer_phone
+      ? `<b>${esc(o.payer_name || 'no name')}</b><br><span class="muted">0${esc(o.payer_phone)}</span>`
+        + `<br><span class="tag ${o.payer_verified ? 'yes' : 'no'}">${o.payer_verified ? 'Verified' : 'Not verified'}</span>`
+      : '<span class="muted">not given</span>';
     return `<tr><td class="muted">${esc((o.created_at||'').slice(0,16).replace('T',' '))}</td>
+      <td>${payer}</td>
       <td>${esc(o.delivery_location) || '<span class="muted">not given</span>'}${o.contact_phone ? '<br><span class="muted">'+esc(o.contact_phone)+'</span>' : ''}${o.delivery_notes ? '<br><span class="muted">'+esc(o.delivery_notes)+'</span>' : ''}</td>
       <td>${its.map(i=>`${esc(i.product_name)} x${i.qty}${i.size?' ('+esc(i.size)+')':''}`).join('<br>') || '<span class="muted">-</span>'}</td>
       <td>${(o.subtotal||0).toLocaleString()}</td><td>${(o.discount||0).toLocaleString()}</td>
