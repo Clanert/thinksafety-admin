@@ -916,6 +916,8 @@ VIEWS.settings = async () => {
     admin_email: 'Where notification emails are sent.',
     admin_webhook_url: 'The Google Apps Script URL that sends those emails. See admin-email-notifier.gs in this repository.',
     home_photo_url: 'The photo in the home screen header. Upload a picture here.',
+    how_to_pay_video_url: 'A short clip showing how to pay by Lipa Namba, played at the top of the shop. Leave empty and the app writes the steps out instead.',
+    how_to_pay_poster_url: 'The still shown before that clip is played.',
     pass_mark_pct: 'Percentage needed to pass a module quiz.',
     xp_per_lesson: 'XP awarded the first time a lesson is completed.',
     points_per_lesson: 'Points earned the first time a lesson is finished.',
@@ -930,10 +932,15 @@ VIEWS.settings = async () => {
     <td class="actions"><button class="btn ghost sm" data-edit="${esc(s.key)}">Edit</button></td></tr>`);
   $('#t').onclick = async e => {
     const key = e.target.dataset.edit; if (!key) return;
-    const isMedia = key.endsWith('_url');
+    // Not every key ending in _url is a picture. admin_webhook_url is an address you paste, and
+    // offering it a file picker made it impossible to set from this screen.
+    const kind = key.endsWith('_video_url') ? 'video'
+      : /_(photo|poster|image)_url$/.test(key) ? 'image'
+      : 'text';
+    const label = kind === 'video' ? 'Video' : kind === 'image' ? 'Image' : 'Value';
     const v = await editDialog(`Edit "${key}"`, [
       { key:'key', label:'Key', readonly:true },
-      { key:'value', label:isMedia ? 'Image' : 'Value', type: isMedia ? 'image' : 'text' },
+      { key:'value', label, type: kind },
     ], rows.find(r=>r.key===key));
     if (v) try { await saveRow('thinksafety_settings', { key, value: v.value }); VIEWS.settings(); } catch(err){ fail(err); }
   };
