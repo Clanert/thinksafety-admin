@@ -163,12 +163,14 @@ dialog .dlg-foot{padding:14px 20px;border-top:1px solid var(--n200);display:flex
       <a data-view="categories">Categories</a>
       <a data-view="orders">Orders</a>
       <a data-view="payments">Payments</a>
+      <a data-view="lipa">Lipa Namba</a>
     </nav>
     <div class="group">People &amp; platform</div>
     <nav>
       <a data-view="users">Users</a>
       <a data-view="comments">Comments</a>
       <a data-view="deletions">Deletion requests</a>
+      <a data-view="staff">Staff alerts</a>
       <a data-view="texts">App text</a>
       <a data-view="settings">Settings</a>
     </nav>
@@ -994,6 +996,109 @@ VIEWS.deletions = async () => {
       if (await deleteRow('thinksafety_deletion_requests', { id: del }, 'this request')) VIEWS.deletions();
     }
   };
+  render();
+};
+
+VIEWS.lipa = async () => {
+  page('Lipa Namba',
+    'The M-Pesa numbers workers pay to. Every active one is listed on the payment screen, in this '
+    + 'order, in the colour you choose. Switch one off and it disappears from the app immediately.',
+    `<div class="toolbar"><button class="btn" id="add">Add a number</button></div><div id="t"></div>`);
+
+  const fields = [
+    { key:'provider', label:'Provider shown to the worker, e.g. M-Pesa' },
+    { key:'account_name', label:'Account name shown under the number' },
+    { key:'lipa_namba', label:'Lipa Namba' },
+    { key:'colour', label:'Colour it appears in (hex, e.g. #243D91)', default:'#243D91' },
+    { key:'note_en', label:'Extra note, English (optional)' },
+    { key:'note_sw', label:'Extra note, Swahili (optional)' },
+    { key:'sort', label:'Order in the list', type:'number' },
+    { key:'active', label:'Show this one in the app', type:'checkbox' },
+  ];
+
+  async function render(){
+    const rows = await fetchAll('thinksafety_payment_methods', { col:'sort' });
+    $('#t').innerHTML = table(['#','Provider','Account name','Lipa Namba','Colour','Shown',''], rows, m => `<tr>
+      <td>${m.sort}</td>
+      <td><b>${esc(m.provider)}</b></td>
+      <td>${esc(m.account_name) || '<span class="muted">-</span>'}</td>
+      <td><b>${esc(m.lipa_namba)}</b></td>
+      <td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;vertical-align:middle;border:1px solid var(--n200);background:${esc(m.colour)}"></span>
+          <span class="muted" style="margin-left:6px">${esc(m.colour)}</span></td>
+      <td><span class="tag ${m.active?'yes':'no'}">${m.active?'Yes':'Hidden'}</span></td>
+      <td class="actions"><button class="btn ghost sm" data-edit="${m.id}">Edit</button>
+        <button class="btn danger sm" data-del="${m.id}">Delete</button></td></tr>`);
+    $('#t').onclick = async e => {
+      const id = e.target.dataset.edit || e.target.dataset.del;
+      if (!id) return;
+      if (e.target.dataset.del) {
+        if (await deleteRow('thinksafety_payment_methods', { id }, 'this payment number')) render();
+        return;
+      }
+      const v = await editDialog('Edit payment number', fields, rows.find(r => r.id === id));
+      if (!v) return;
+      try {
+        await saveRow('thinksafety_payment_methods', { id, ...v, sort:num(v.sort) });
+        render();
+      } catch(err){ fail(err); }
+    };
+    $('#add').onclick = async () => {
+      const v = await editDialog('New payment number', fields,
+        { sort: rows.length, active: true, colour:'#243D91', provider:'M-Pesa' });
+      if (!v) return;
+      try {
+        await saveRow('thinksafety_payment_methods', { ...v, sort:num(v.sort) });
+        render();
+      } catch(err){ fail(err); }
+    };
+  }
+  render();
+};
+
+VIEWS.staff = async () => {
+  page('Staff alerts',
+    'Phone numbers told by SMS when something happens. Tick what each person should hear about. '
+    + 'These numbers are never shown in the app.',
+    `<div class="toolbar"><button class="btn" id="add">Add a number</button></div><div id="t"></div>`);
+
+  const fields = [
+    { key:'name', label:'Name' },
+    { key:'phone', label:'Phone number, e.g. 0695738861' },
+    { key:'on_registration', label:'Tell them when a worker registers', type:'checkbox' },
+    { key:'on_order', label:'Tell them when an order is placed', type:'checkbox' },
+    { key:'on_payment', label:'Tell them when a payment is submitted', type:'checkbox' },
+    { key:'active', label:'Send to this number', type:'checkbox' },
+  ];
+
+  async function render(){
+    const rows = await fetchAll('thinksafety_staff', { col:'created_at' });
+    $('#t').innerHTML = table(['Name','Phone','Registrations','Orders','Payments','On',''], rows, r => `<tr>
+      <td><b>${esc(r.name) || '<span class="muted">(no name)</span>'}</b></td>
+      <td>${esc(r.phone)}</td>
+      <td><span class="tag ${r.on_registration?'yes':'no'}">${r.on_registration?'Yes':'No'}</span></td>
+      <td><span class="tag ${r.on_order?'yes':'no'}">${r.on_order?'Yes':'No'}</span></td>
+      <td><span class="tag ${r.on_payment?'yes':'no'}">${r.on_payment?'Yes':'No'}</span></td>
+      <td><span class="tag ${r.active?'approved':'pending'}">${r.active?'Active':'Off'}</span></td>
+      <td class="actions"><button class="btn ghost sm" data-edit="${r.id}">Edit</button>
+        <button class="btn danger sm" data-del="${r.id}">Remove</button></td></tr>`);
+    $('#t').onclick = async e => {
+      const id = e.target.dataset.edit || e.target.dataset.del;
+      if (!id) return;
+      if (e.target.dataset.del) {
+        if (await deleteRow('thinksafety_staff', { id }, 'this staff number')) render();
+        return;
+      }
+      const v = await editDialog('Edit staff number', fields, rows.find(r => r.id === id));
+      if (!v) return;
+      try { await saveRow('thinksafety_staff', { id, ...v }); render(); } catch(err){ fail(err); }
+    };
+    $('#add').onclick = async () => {
+      const v = await editDialog('New staff number', fields,
+        { on_registration:true, on_order:true, on_payment:true, active:true });
+      if (!v) return;
+      try { await saveRow('thinksafety_staff', v); render(); } catch(err){ fail(err); }
+    };
+  }
   render();
 };
 
