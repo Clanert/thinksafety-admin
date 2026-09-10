@@ -369,6 +369,20 @@ function editDialog(title, fields, values){
         </div>
         <div class="muted" data-status="${f.key}" style="font-size:12px;margin-top:4px"></div>
       </div>`;
+      if (f.type === 'images') {
+        const list = Array.isArray(v) ? v : String(v || '').split('\n').filter(Boolean);
+        return `<div class="field">
+        <label>${esc(f.label)}</label>
+        <textarea data-k="${f.key}" rows="4" placeholder="One image address per line, in the order they should be shown">${esc(list.join('\n'))}</textarea>
+        <div class="muted" style="font-size:12px;margin-top:4px">PowerPoint cannot be shown on a phone. Export the deck to images (File, Export, PNG) and upload them all at once, or attach the PDF as the handout below.</div>
+        <div class="row" style="margin-top:8px">
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-file="${f.key}" style="flex:1;min-width:0">
+          <button class="btn ghost sm" type="button" data-upload-many="${f.key}">Upload slides</button>
+        </div>
+        <div class="muted" data-status="${f.key}" style="font-size:12px;margin-top:4px"></div>
+        ${list.length ? `<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">${list.map((u,i)=>`<div style="position:relative"><img src="${esc(u)}" alt="" style="height:70px;border:1px solid var(--n200)"><span style="position:absolute;top:2px;left:2px;background:#000a;color:#fff;font-size:10px;padding:1px 4px;border-radius:3px">${i+1}</span></div>`).join('')}</div>` : ''}
+      </div>`;
+      }
       if (f.type === 'video') return `<div class="field">
         <label>${esc(f.label)}</label>
         <input data-k="${f.key}" type="text" value="${esc(v)}" placeholder="No video yet">
@@ -412,6 +426,40 @@ function editDialog(title, fields, values){
           const { data } = sb.storage.from('thinksafety-media').getPublicUrl(path);
           dlg.querySelector(`[data-k="${key}"]`).value = data.publicUrl;
           status.textContent = 'Uploaded. Now press Save to attach it.';
+        } catch (err) {
+          status.textContent = 'Upload failed: ' + (err.message || err);
+        } finally { btn.disabled = false; }
+      };
+    });
+
+    // A deck is uploaded in one go and appended in the order the files were picked, because
+    // slide order is the whole point and re-picking them one at a time invites mistakes.
+    dlg.querySelectorAll('[data-upload-many]').forEach(btn => {
+      btn.onclick = async () => {
+        const key = btn.dataset.uploadMany;
+        const picker = dlg.querySelector(`[data-file="${key}"]`);
+        const status = dlg.querySelector(`[data-status="${key}"]`);
+        const box = dlg.querySelector(`[data-k="${key}"]`);
+        const files = Array.from(picker?.files || []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        if (!files.length) { status.textContent = 'Choose the slide images first.'; return; }
+        const tooBig = files.find(f => f.size > 10 * 1024 * 1024);
+        if (tooBig) { status.textContent = `${tooBig.name} is over the 10 MB image limit.`; return; }
+        btn.disabled = true;
+        const added = [];
+        try {
+          for (let i = 0; i < files.length; i++) {
+            status.textContent = `Uploading slide ${i + 1} of ${files.length}...`;
+            const file = files[i];
+            const safe = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+            const path = `${key}/${Date.now()}_${i}_${safe}`;
+            const { error } = await sb.storage.from('thinksafety-media')
+              .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+            if (error) throw error;
+            added.push(sb.storage.from('thinksafety-media').getPublicUrl(path).data.publicUrl);
+          }
+          const existing = box.value.split('\n').map(x => x.trim()).filter(Boolean);
+          box.value = existing.concat(added).join('\n');
+          status.textContent = `${added.length} slide${added.length === 1 ? '' : 's'} added. Press Save to attach them.`;
         } catch (err) {
           status.textContent = 'Upload failed: ' + (err.message || err);
         } finally { btn.disabled = false; }
@@ -530,16 +578,24 @@ VIEWS.lessons = async () => {
     { key:'video_poster_url', label:'Lesson video thumbnail', type:'image' },
     { key:'diagram_url', label:'Diagram', type:'image' },
     { key:'photo_url', label:'Reference photo', type:'image' },
+    { key:'slide_urls', label:'Slides (PowerPoint exported to images, or a photo series)', type:'images' },
     { key:'material_url', label:'Handout (PDF)', type:'file' },
     { key:'material_name', label:'Handout name shown in the app' },
   ]);
+  // slide_urls is a text[] column, so the one-per-line box has to become a real array on save.
+  const asLesson = v => ({
+    ...v,
+    sort: num(v.sort),
+    slide_urls: String(v.slide_urls || '').split('\n').map(x => x.trim()).filter(Boolean),
+  });
   async function render(){
     const mid = $('#mod').value;
     const all = await fetchAll('thinksafety_lessons', { col:'sort' });
     const rows = all.filter(l => l.module_id === mid);
-    $('#t').innerHTML = table(['#','Title (EN)','Title (SW)','Video','Body (EN)',''], rows, l => `<tr>
+    $('#t').innerHTML = table(['#','Title (EN)','Title (SW)','Video','Slides','Body (EN)',''], rows, l => `<tr>
       <td>${l.sort}</td><td>${esc(l.title_en)}</td><td>${esc(l.title_sw)}</td>
       <td>${l.video_url ? '<span class="tag yes">Yes</span>' : '<span class="tag no">None</span>'}</td>
+      <td>${(l.slide_urls||[]).length ? `<span class="tag yes">${l.slide_urls.length}</span>` : '<span class="tag no">None</span>'}</td>
       <td class="muted">${esc((l.body_en||'').slice(0,70))}${(l.body_en||'').length>70?'...':''}</td>
       <td class="actions"><button class="btn ghost sm" data-edit="${l.id}">Edit</button>
         <button class="btn danger sm" data-del="${l.id}">Delete</button></td></tr>`);
@@ -549,12 +605,12 @@ VIEWS.lessons = async () => {
       if (e.target.dataset.del) { if (await deleteRow('thinksafety_lessons', { id }, 'this lesson')) render(); return; }
       const v = await editDialog('Edit lesson', fields(mid), rows.find(r => r.id === id));
       if (!v) return;
-      try { await saveRow('thinksafety_lessons', { id, ...v, sort:num(v.sort) }); render(); } catch(err){ fail(err); }
+      try { await saveRow('thinksafety_lessons', { id, ...asLesson(v) }); render(); } catch(err){ fail(err); }
     };
     $('#add').onclick = async () => {
       const v = await editDialog('New lesson', fields(mid), { sort: rows.length });
       if (!v) return;
-      try { await saveRow('thinksafety_lessons', { ...v, sort:num(v.sort) }); render(); } catch(err){ fail(err); }
+      try { await saveRow('thinksafety_lessons', asLesson(v)); render(); } catch(err){ fail(err); }
     };
   }
   $('#mod').onchange = render;
