@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete my account - ThinkSafety</title>
+<style>
+  :root{--navy:#243d91;--lime:#8cc641;--ink:#1d2333;--muted:#5c6478;--line:#e3e7f2;--bg:#f7f8fc;--red:#b3261e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{background:var(--navy);color:#fff;padding:34px 20px}
+  .wrap{max-width:680px;margin:0 auto}
+  .mark{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .mark i{display:block;width:7px;height:26px;border-radius:3px;background:#fff}
+  .mark i+i{background:var(--lime)}
+  .mark b{font-size:20px;font-weight:800;letter-spacing:-.01em}
+  h1{margin:0;font-size:28px;line-height:1.25}
+  header p{margin:8px 0 0;opacity:.85;font-size:14px}
+  main{padding:28px 20px 60px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;margin-bottom:16px}
+  h2{font-size:18px;margin:0 0 10px;color:var(--navy)}
+  p,li{color:var(--muted)}
+  p{margin:0 0 12px}
+  ul{margin:0 0 12px;padding-left:20px}
+  li{margin:4px 0}
+  strong{color:var(--ink)}
+  a{color:var(--navy)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+  ol.steps li{counter-increment:s;position:relative;padding:0 0 12px 38px}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:24px;height:24px;
+    border-radius:50%;background:#edf0f9;color:var(--navy);font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  label{display:block;font-size:14px;font-weight:600;color:var(--ink);margin:14px 0 6px}
+  input,textarea{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;
+    font:inherit;background:#fbfcff;color:var(--ink)}
+  textarea{min-height:90px;resize:vertical}
+  button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:100px;background:var(--red);
+    color:#fff;font:inherit;font-weight:700;cursor:pointer}
+  button:disabled{background:#d7d3d3;color:#7d7979;cursor:not-allowed}
+  .msg{margin-top:14px;padding:13px 15px;border-radius:12px;font-size:14px;display:none}
+  .ok{background:#f2f8e8;border:1px solid #d8ecc0;color:#3f5c1c}
+  .err{background:#fff5f5;border:1px solid #f3d2d2;color:#8c2b2b}
+  .warn{background:#fff5f5;border:1px solid #f3d2d2;border-radius:12px;padding:14px 16px;margin:0 0 14px}
+  .warn p{margin:0;color:#8c2b2b}
+  footer{border-top:1px solid var(--line);padding:22px 20px;font-size:13px;color:var(--muted)}
+  footer a{margin-right:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="mark"><i></i><i></i><b>ThinkSafety</b></div>
+    <h1>Delete my account</h1>
+    <p>Remove your ThinkSafety account and everything stored with it.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="card">
+    <h2>The quickest way: from inside the app</h2>
+    <p>If you still have ThinkSafety installed, this happens immediately and you do not have to wait
+       for anybody.</p>
+    <ol class="steps">
+      <li>Open ThinkSafety and sign in.</li>
+      <li>Tap <strong>Wasifu</strong> (Profile) at the bottom right.</li>
+      <li>Scroll down and tap <strong>Futa akaunti yangu</strong> (Delete my account).</li>
+      <li>Confirm. Your account and data are removed straight away.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Or ask us here</h2>
+    <p>Use this if you have uninstalled the app or cannot sign in. We will find your account and
+       remove it.</p>
+    <div class="warn">
+      <p>We cannot delete an account the moment this form is submitted, because a phone number typed
+         into a web page does not prove whose account it is. We check first, so that nobody can
+         erase somebody else's account. Requests are actioned within 30 days, usually much sooner.</p>
+    </div>
+
+    <form id="f">
+      <label for="identifier">The phone number or email you signed up with</label>
+      <input id="identifier" name="identifier" required autocomplete="off"
+             placeholder="0712 345 678  or  you@example.com">
+
+      <label for="note">Anything that helps us find your account (optional)</label>
+      <textarea id="note" name="note" placeholder="Your name, or roughly when you registered."></textarea>
+
+      <button id="go" type="submit">Request deletion</button>
+      <div id="msg" class="msg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>What gets deleted</h2>
+    <ul>
+      <li>Your name, phone number or email address, and your sign-in.</li>
+      <li>Your training progress, quiz scores, points and rewards.</li>
+      <li>Your likes and comments.</li>
+      <li>Your orders, including the delivery address you gave.</li>
+      <li>Your payment records and any payment confirmation picture you uploaded.</li>
+    </ul>
+    <p>This cannot be undone. Points and gift coupons are lost. If you sign up again later you start
+       from the beginning.</p>
+    <p>Nothing is kept once your account is deleted.</p>
+  </div>
+
+  <div class="card">
+    <h2>Questions</h2>
+    <p>Email <a href="mailto:clanertsustaintz@gmail.com">clanertsustaintz@gmail.com</a>.
+       See also our <a href="privacy.html">Privacy policy</a>.</p>
+  </div>
+</main>
+
+<footer class="wrap">
+  <a href="privacy.html">Privacy</a>
+  <a href="terms.html">Terms</a>
+  <a href="delete-account.html">Delete my account</a>
+</footer>
+
+<script>
+const ENDPOINT = 'https://jiswpvhvxtngcwfzccwp.supabase.co/functions/v1/request-deletion';
+const KEY = 'sb_publishable_yXy-mVbmsBH6f7C-TT4Ajw_C8J8li-i';
+
+const form = document.getElementById('f');
+const go = document.getElementById('go');
+const msg = document.getElementById('msg');
+
+function show(text, ok) {
+  msg.textContent = text;
+  msg.className = 'msg ' + (ok ? 'ok' : 'err');
+  msg.style.display = 'block';
+}
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const identifier = document.getElementById('identifier').value.trim();
+  const note = document.getElementById('note').value.trim();
+  if (identifier.length < 5) { show('Enter the phone number or email you signed up with.', false); return; }
+
+  go.disabled = true;
+  go.textContent = 'Sending...';
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, note })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      form.reset();
+      show('Request received. We will remove your account and confirm by the contact you gave. '
+         + 'If you still have the app, you can delete it yourself right now from Profile.', true);
+      go.textContent = 'Request sent';
+      return;
+    }
+    show(body.error || 'Could not send the request. Please email clanertsustaintz@gmail.com.', false);
+  } catch (err) {
+    show('Could not reach the server. Check your connection, or email clanertsustaintz@gmail.com.', false);
+  } finally {
+    if (go.textContent === 'Sending...') go.textContent = 'Request deletion';
+    go.disabled = go.textContent === 'Request sent';
+  }
+});
+</script>
+</body>
+</html>

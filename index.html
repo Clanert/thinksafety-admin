@@ -168,6 +168,7 @@ dialog .dlg-foot{padding:14px 20px;border-top:1px solid var(--n200);display:flex
     <nav>
       <a data-view="users">Users</a>
       <a data-view="comments">Comments</a>
+      <a data-view="deletions">Deletion requests</a>
       <a data-view="texts">App text</a>
       <a data-view="settings">Settings</a>
     </nav>
@@ -957,6 +958,41 @@ VIEWS.texts = async () => {
     ], rows.find(r => r.key === key));
     if (!v) return;
     try { await saveRow('thinksafety_texts', { key, en:v.en, sw:v.sw }); rows = await fetchAll('thinksafety_texts', { col:'key' }); render(); } catch(err){ fail(err); }
+  };
+  render();
+};
+
+VIEWS.deletions = async () => {
+  page('Deletion requests',
+    'People who asked for their account to be removed from the public web form. Someone deleting '
+    + 'their own account inside the app is removed straight away and never appears here.',
+    `<div id="t"></div>`);
+  const rows = await fetchAll('thinksafety_deletion_requests', { col:'created_at', asc:false });
+  function render(){
+    $('#t').innerHTML = table(['Asked','Signed up with','Note','Status',''], rows, r => `<tr>
+      <td class="muted">${esc((r.created_at||'').slice(0,16).replace('T',' '))}</td>
+      <td><b>${esc(r.identifier)}</b></td>
+      <td class="muted">${esc(r.note || '')}</td>
+      <td><span class="tag ${r.status === 'done' ? 'approved' : 'pending'}">${r.status === 'done' ? 'Done' : 'Pending'}</span></td>
+      <td class="actions">
+        ${r.status === 'done' ? '' : `<button class="btn lime sm" data-done="${r.id}">Mark done</button>`}
+        <button class="btn danger sm" data-del="${r.id}">Remove</button></td></tr>`);
+  }
+  $('#t').onclick = async e => {
+    const done = e.target.dataset.done, del = e.target.dataset.del;
+    if (done) {
+      // Marked by hand: the account itself is removed from the Users page, because matching a
+      // phone number to an account is a judgement call, not something to automate.
+      const { error } = await sb.from('thinksafety_deletion_requests')
+        .update({ status:'done', handled_at: new Date().toISOString() }).eq('id', done);
+      if (error) return fail(error);
+      const row = rows.find(x => x.id === done);
+      row.status = 'done';
+      toast('Marked done');
+      render();
+    } else if (del) {
+      if (await deleteRow('thinksafety_deletion_requests', { id: del }, 'this request')) VIEWS.deletions();
+    }
   };
   render();
 };
